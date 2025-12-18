@@ -1,5 +1,3 @@
-# backend.tf
-
 terraform {
   backend "s3" {
     # These values must be provided via command line or environment variables
