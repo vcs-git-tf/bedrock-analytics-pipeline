@@ -6,8 +6,7 @@ resource "aws_s3_bucket" "terraform_state" {
   lifecycle {
     prevent_destroy = true
   }
-
-  tags = local.tags
+  #tags = local.tags
 }
 
 # Enable versioning for the S3 bucket
@@ -50,6 +49,5 @@ resource "aws_dynamodb_table" "terraform_locks" {
     name = "LockID"
     type = "S"
   }
-
-  tags = local.tags
+  # tags = local.tags
 }
