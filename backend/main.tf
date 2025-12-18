@@ -2,7 +2,7 @@
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "${var.project_name}-${var.environment}-terraform-state"
 
- # Prevent accidental deletion of this S3 bucket
+  # Prevent accidental deletion of this S3 bucket
   lifecycle {
     prevent_destroy = true
   }
@@ -10,8 +10,8 @@ resource "aws_s3_bucket" "terraform_state" {
   # tags = var.tags
 }
 
- # Enable versioning for the S3 bucket
- resource "aws_s3_bucket_versioning" "terraform_state" {
+# Enable versioning for the S3 bucket
+resource "aws_s3_bucket_versioning" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
   versioning_configuration {
@@ -19,8 +19,8 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 }
 
- # Enable server-side encryption for the S3 bucket
- resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
+# Enable server-side encryption for the S3 bucket
+resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
   rule {
@@ -30,8 +30,8 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 }
 
- # Block public access to the S3 bucket
- resource "aws_s3_bucket_public_access_block" "terraform_state" {
+# Block public access to the S3 bucket
+resource "aws_s3_bucket_public_access_block" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
   block_public_acls       = true
@@ -40,8 +40,8 @@ resource "aws_s3_bucket" "terraform_state" {
   restrict_public_buckets = true
 }
 
- # DynamoDB table for state locking
- resource "aws_dynamodb_table" "terraform_locks" {
+# DynamoDB table for state locking
+resource "aws_dynamodb_table" "terraform_locks" {
   name         = "${var.project_name}-${var.environment}-terraform-locks"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
