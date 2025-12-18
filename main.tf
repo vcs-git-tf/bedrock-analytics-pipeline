@@ -24,7 +24,7 @@ module "firehose" {
 
   project_name             = var.project_name
   environment              = var.environment
-  tags                     = var.tags
+  tags                     = local.tags
   s3_bucket_arn            = module.storage.metrics_bucket_arn
   s3_bucket_id             = module.storage.metrics_bucket_id
   log_group_name           = module.logging.log_group_name
@@ -39,7 +39,7 @@ module "athena" {
 
   project_name   = var.project_name
   environment    = var.environment
-  tags           = var.tags
+  tags           = local.tags
   s3_bucket_id   = module.storage.metrics_bucket_id
   s3_bucket_arn  = module.storage.metrics_bucket_arn
   database_name  = var.athena_database_name
@@ -51,7 +51,7 @@ module "quicksight" {
 
   project_name         = var.project_name
   environment          = var.environment
-  tags                 = var.tags
+  tags                 = local.tags
   athena_database_name = module.athena.database_name
   athena_table_name    = module.athena.table_name
   quicksight_user      = var.quicksight_user
