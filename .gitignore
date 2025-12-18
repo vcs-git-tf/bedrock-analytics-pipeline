@@ -23,7 +23,8 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-
+# Ignore backend configuration
+backend.tfvars
 
 # Ignore lock files
 .terraform.lock.hcl
