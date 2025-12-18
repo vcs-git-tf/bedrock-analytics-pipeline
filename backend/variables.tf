@@ -19,11 +19,11 @@ variable "tags" {
 # Create local tags that combine defaults with provided tags
 locals {
   default_tags = {
-    Project   = var.project_name
+    Project     = var.project_name
     Environment = var.environment
-    ManagedBy = "terraform"
+    ManagedBy   = "terraform"
   }
-  
+
   tags = merge(local.default_tags, var.tags)
 }
 
