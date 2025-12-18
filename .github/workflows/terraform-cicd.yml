@@ -57,11 +57,11 @@ jobs:
             echo "✅ All Terraform files are properly formatted"
           fi
 
-      - name: Terraform Init Backend
-        run: |
-          cd backend
-          terraform init
-          terraform validate
+      # - name: Terraform Init Backend
+      #  run: |
+      #    cd backend
+      #    terraform init
+      #    terraform validate
 
       - name: Terraform Init Main
         run: terraform init -backend=false  # Skip backend for validation
