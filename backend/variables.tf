@@ -17,15 +17,15 @@ variable "tags" {
 }
 
 # Create local tags that combine defaults with provided tags
-#locals {
-#  default_tags = {
-#    Project     = var.project_name
-#    Environment = var.environment
-#    ManagedBy   = "terraform"
-#  }
+locals {
+  default_tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+  }
 
-#  tags = merge(local.default_tags, var.tags)
-#}
+  tags = merge(local.default_tags, var.tags)
+}
 
 variable "aws_region" {
   description = "AWS region to deploy resources"
