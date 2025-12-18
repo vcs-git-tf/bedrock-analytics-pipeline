@@ -11,14 +11,20 @@ variable "environment" {
 }
 
 variable "tags" {
-  description = "Tags to apply to all resources"
+  description = "Tags to apply to resources"
   type        = map(string)
-  default = {
-    Project     = "bedrock-analytics"
-    Environment = "dev"
-    ManagedBy   = "terraform"
-    Owner       = "data-team"
+  default     = {}
+}
+
+# Create local tags that combine defaults with provided tags
+locals {
+  default_tags = {
+    Project   = var.project_name
+    Environment = var.environment
+    ManagedBy = "terraform"
   }
+  
+  tags = merge(local.default_tags, var.tags)
 }
 
 variable "aws_region" {
