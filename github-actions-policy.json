@@ -1,0 +1,52 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": "arn:aws:dynamodb:*:*:table/bedrock-analytics-*-terraform-locks"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::bedrock-analytics-*-terraform-state",
+        "arn:aws:s3:::bedrock-analytics-*-terraform-state/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:PassRole",
+        "iam:GetRole",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::*:role/bedrock-analytics-*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:*",
+        "logs:*",
+        "firehose:*",
+        "s3:*",
+        "athena:*",
+        "quicksight:*",
+        "glue:*",
+        "bedrock:*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
