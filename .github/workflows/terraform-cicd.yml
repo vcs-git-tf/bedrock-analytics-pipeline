@@ -88,29 +88,29 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
           aws-region: ${{ env.AWS_REGION }}  # Fixed variable reference
 
-      - name: Setup Backend
-        run: |
-          ENV=${{ github.event.inputs.environment || env.ENV }}  # Fixed variable reference
-          cd backend
-          terraform init
-          terraform apply -auto-approve \
-            -var="project_name=${{ env.PROJECT_NAME }}" \
-            -var="environment=$ENV" \
-            -var="aws_region=${{ env.AWS_REGION }}" \
-            -var="tags={Project=${{ env.PROJECT_NAME }},Environment=$ENV,ManagedBy=terraform}"
+      # - name: Setup Backend
+      #  run: |
+      #    ENV=${{ github.event.inputs.environment || env.ENV }}  # Fixed variable reference
+      #    cd backend
+      #    terraform init
+      #    terraform apply -auto-approve \
+      #      -var="project_name=${{ env.PROJECT_NAME }}" \
+      #      -var="environment=$ENV" \
+      #      -var="aws_region=${{ env.AWS_REGION }}" \
+      #      -var="tags={Project=${{ env.PROJECT_NAME }},Environment=$ENV,ManagedBy=terraform}"
           
-          STATE_BUCKET=$(terraform output -raw terraform_state_bucket)
-          LOCKS_TABLE=$(terraform output -raw terraform_locks_table)
-          cd ..
+      #    STATE_BUCKET=$(terraform output -raw terraform_state_bucket)
+      #    LOCKS_TABLE=$(terraform output -raw terraform_locks_table)
+      #    cd ..
           
-          echo "bucket = \"$STATE_BUCKET\"" > backend.tfvars
-          echo "key = \"terraform.tfstate\"" >> backend.tfvars
-          echo "region = \"${{ env.AWS_REGION }}\"" >> backend.tfvars
-          echo "dynamodb_table = \"$LOCKS_TABLE\"" >> backend.tfvars
-          echo "encrypt = true" >> backend.tfvars
+      #    echo "bucket = \"$STATE_BUCKET\"" > backend.tfvars
+      #    echo "key = \"terraform.tfstate\"" >> backend.tfvars
+      #    echo "region = \"${{ env.AWS_REGION }}\"" >> backend.tfvars
+      #    echo "dynamodb_table = \"$LOCKS_TABLE\"" >> backend.tfvars
+      #    echo "encrypt = true" >> backend.tfvars
 
-      - name: Terraform Init
-        run: terraform init -backend-config=backend.tfvars
+      # - name: Terraform Init
+      #  run: terraform init -backend-config=backend.tfvars
 
       - name: Terraform Plan
         id: plan
