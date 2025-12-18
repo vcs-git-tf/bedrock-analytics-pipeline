@@ -10,11 +10,11 @@ variable "environment" {
   type        = string
 }
 
-# variable "tags" {
-#  description = "Tags to apply to resources"
-#  type        = map(string)
-#  default     = {}
-#}
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
+}
 
 # Create local tags that combine defaults with provided tags
 #locals {
