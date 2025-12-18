@@ -1,0 +1,8 @@
+# These owners will be the default owners for everything in the repo
+* @vcs-git-tf
+ 
+# Terraform configuration files
+*.tf @vcs-git-tf
+ 
+# GitHub Actions workflows
+.github/workflows/ @vcs-git-tf
