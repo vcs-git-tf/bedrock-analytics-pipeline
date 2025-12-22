@@ -185,4 +185,13 @@ jobs:
         run: terraform init -backend-config=backend.tfvars
  
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        run: |
+         ENV=${{ github.event.inputs.environment || env.ENV }}
+          echo "Applying for environment: $ENV"
+        
+         if [ -f "environments/$ENV.tfvars" ]; then
+           terraform apply -auto-approve -var-file=environments/$ENV.tfvars
+         else
+           echo "No tfvars file found, applying with default values"
+           terraform apply -auto-approve
+         fi
