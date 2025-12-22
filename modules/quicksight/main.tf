@@ -20,7 +20,7 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
   data_set_id    = local.dataset_id
   name           = "${var.project_name}-${var.environment}-metrics-dataset"
   aws_account_id = var.aws_account_id
-  import_mode    = "DIRECT_QUERY"
+  import_mode = "SPICE"  # Changed from DIRECT_QUERY
 
   physical_table_map {
     physical_table_map_id = "BedrockMetricsTable"
@@ -86,8 +86,8 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
       incremental_refresh {
         lookback_window {
           column_name = "timestamp"
-          size        = 1
-          size_unit   = "HOUR"
+          size        = 5
+          size_unit   = "DAY"
         }
       }
     }
