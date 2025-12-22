@@ -1,47 +1,3 @@
-# Create S3 bucket for Athena query results
-resource "aws_s3_bucket" "athena_results" {
-  bucket = "${var.project_name}-${var.environment}-athena-results"
-
-  tags = merge(var.tags, {
-    Component = "athena"
-    Purpose   = "query-results"
-  })
-}
-
-resource "aws_s3_bucket_versioning" "athena_results" {
-  bucket = aws_s3_bucket.athena_results.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
-  bucket = aws_s3_bucket.athena_results.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "athena_results" {
-  bucket = aws_s3_bucket.athena_results.id
-
-  rule {
-    id     = "delete_old_results"
-    status = "Enabled"
-
-    expiration {
-      days = 30
-    }
-
-    noncurrent_version_expiration {
-      noncurrent_days = 7
-    }
-  }
-}
-
 # Create or reference the Athena workgroup with proper configuration
 resource "aws_athena_workgroup" "bedrock_analytics" {
   name = "${var.project_name}-${var.environment}-workgroup"
@@ -63,6 +19,41 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
     Component = "athena"
   })
 }
+
+# Update your QuickSight data source to depend on the workgroup
+resource "aws_quicksight_data_source" "athena_source" {
+  data_source_id = "${var.project_name}-${var.environment}-athena-source"
+  name           = "${var.project_name}-${var.environment}-athena-source"
+  type           = "ATHENA"
+  aws_account_id = var.aws_account_id
+
+  parameters {
+    athena {
+      work_group = aws_athena_workgroup.bedrock_analytics.name
+    }
+  }
+
+  depends_on = [
+    aws_athena_workgroup.bedrock_analytics,
+    aws_s3_bucket.athena_results
+  ]
+
+  tags = var.tags
+}
+
+resource "aws_quicksight_data_source" "athena_source" {
+  data_source_id = "${var.project_name}-${var.environment}-athena-source"
+  name           = "${var.project_name}-${var.environment}-athena-source"
+  type           = "ATHENA"
+  aws_account_id = var.aws_account_id
+
+  parameters {
+    athena {
+      work_group = "${var.project_name}-${var.environment}-workgroup"
+    }
+  }
+}
+
 
 locals {
   # Generate a consistent hash-based ID
