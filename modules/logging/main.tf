@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_log_group" "bedrock_logs" {
-  name              = "bedrock-logs"
+  name              = "bedrock-analytics-logs"
   retention_in_days = var.log_retention
   tags              = var.tags
 }
