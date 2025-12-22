@@ -181,8 +181,8 @@ jobs:
         with:
           name: terraform-plan
  
-      # - name: Terraform Init
-      #   run: terraform init -backend-config=backend.tfvars
+      - name: Terraform Init
+        run: terraform init -backend-config=backend.tfvars
  
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
