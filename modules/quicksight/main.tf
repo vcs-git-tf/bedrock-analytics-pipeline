@@ -18,26 +18,33 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
   }
 }
 
-# Create Athena workgroup
-resource "aws_athena_workgroup" "bedrock_analytics" {
+# Remove this resource block entirely:
+# resource "aws_athena_workgroup" "bedrock_analytics" { ... }
+
+# Replace with a data source to reference the workgroup created by the athena module:
+data "aws_athena_workgroup" "bedrock_analytics" {
   name = "${var.project_name}-${var.environment}-workgroup"
+}
 
-  configuration {
-    enforce_workgroup_configuration    = true
-    publish_cloudwatch_metrics_enabled = true
+# Update your QuickSight data source:
+resource "aws_quicksight_data_source" "athena_source" {
+  data_source_id = "${var.project_name}-${var.environment}-athena-source"
+  name           = "${var.project_name}-${var.environment}-athena-source"
+  type           = "ATHENA"
+  aws_account_id = var.aws_account_id
 
-    result_configuration {
-      output_location = "s3://${aws_s3_bucket.athena_results.bucket}/query-results/"
-
-      encryption_configuration {
-        encryption_option = "SSE_S3"
-      }
+  parameters {
+    athena {
+      work_group = data.aws_athena_workgroup.bedrock_analytics.name
     }
   }
 
-  tags = merge(var.tags, {
-    Component = "athena"
-  })
+  depends_on = [
+    data.aws_athena_workgroup.bedrock_analytics,
+    aws_s3_bucket.athena_results
+  ]
+
+  tags = var.tags
 }
 
 # KEEP ONLY ONE aws_quicksight_data_source resource
