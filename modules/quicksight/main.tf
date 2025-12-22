@@ -1,4 +1,24 @@
-# Create or reference the Athena workgroup with proper configuration
+# Create S3 bucket for Athena query results
+resource "aws_s3_bucket" "athena_results" {
+  bucket = "${var.project_name}-${var.environment}-athena-results"
+  
+  tags = merge(var.tags, {
+    Component = "athena"
+    Purpose   = "query-results"
+  })
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
+  bucket = aws_s3_bucket.athena_results.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Create Athena workgroup
 resource "aws_athena_workgroup" "bedrock_analytics" {
   name = "${var.project_name}-${var.environment}-workgroup"
 
@@ -7,8 +27,8 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
     publish_cloudwatch_metrics_enabled = true
 
     result_configuration {
-      output_location = "s3://${aws_s3_bucket.athena_results.bucket}/"
-
+      output_location = "s3://${aws_s3_bucket.athena_results.bucket}/query-results/"
+      
       encryption_configuration {
         encryption_option = "SSE_S3"
       }
@@ -20,7 +40,7 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
   })
 }
 
-# Update your QuickSight data source to depend on the workgroup
+# KEEP ONLY ONE aws_quicksight_data_source resource
 resource "aws_quicksight_data_source" "athena_source" {
   data_source_id = "${var.project_name}-${var.environment}-athena-source"
   name           = "${var.project_name}-${var.environment}-athena-source"
@@ -41,20 +61,6 @@ resource "aws_quicksight_data_source" "athena_source" {
   tags = var.tags
 }
 
-resource "aws_quicksight_data_source" "athena_source" {
-  data_source_id = "${var.project_name}-${var.environment}-athena-source"
-  name           = "${var.project_name}-${var.environment}-athena-source"
-  type           = "ATHENA"
-  aws_account_id = var.aws_account_id
-
-  parameters {
-    athena {
-      work_group = "${var.project_name}-${var.environment}-workgroup"
-    }
-  }
-}
-
-
 locals {
   # Generate a consistent hash-based ID
   dataset_id = "${var.project_name}-${var.environment}-metrics-${substr(md5("${var.project_name}-${var.environment}"), 0, 8)}"
@@ -64,7 +70,7 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
   data_set_id    = local.dataset_id
   name           = "${var.project_name}-${var.environment}-metrics-dataset"
   aws_account_id = var.aws_account_id
-  import_mode    = "SPICE" # Changed from DIRECT_QUERY
+  import_mode    = "SPICE"
 
   physical_table_map {
     physical_table_map_id = "BedrockMetricsTable"
@@ -122,7 +128,13 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
 
   permissions {
     principal = "arn:aws:quicksight:${var.aws_region}:${var.aws_account_id}:user/${var.quicksight_user}"
-    actions   = ["quicksight:DescribeDataSet", "quicksight:DescribeDataSetPermissions", "quicksight:PassDataSet", "quicksight:UpdateDataSet", "quicksight:DeleteDataSet"]
+    actions   = [
+      "quicksight:DescribeDataSet",
+      "quicksight:DescribeDataSetPermissions", 
+      "quicksight:PassDataSet",
+      "quicksight:UpdateDataSet",
+      "quicksight:DeleteDataSet"
+    ]
   }
 
   refresh_properties {
@@ -138,8 +150,6 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
   }
 }
 
-# This is a placeholder as Terraform doesn't directly support QuickSight dashboard creation
-# You would typically create dashboards through the QuickSight UI or API
 resource "aws_cloudformation_stack" "quicksight_dashboard" {
   name = "${var.project_name}-${var.environment}-qs-dashboard"
 
