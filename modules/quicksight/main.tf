@@ -19,7 +19,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
 }
 
 # Create Athena workgroup
-resource "aws_athena_workgroup" "bedrock_analytics" {
+/*resource "aws_athena_workgroup" "bedrock_analytics" {
   name = "${var.project_name}-${var.environment}-workgroup"
 
   configuration {
@@ -38,7 +38,7 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
   tags = merge(var.tags, {
     Component = "athena"
   })
-}
+}*/
 
 # KEEP ONLY ONE aws_quicksight_data_source resource
 resource "aws_quicksight_data_source" "athena_source" {
