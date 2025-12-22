@@ -183,6 +183,9 @@ jobs:
  
       - name: Terraform Init
         run: terraform init -backend-config=backend.tfvars
+
+      - name: Terraform Import
+        run: terraform import module.quicksight.aws_athena_workgroup.bedrock_analytics bedrock-analytics-dev-workgroup
  
       - name: Terraform Apply
         run: |
