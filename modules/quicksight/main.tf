@@ -1,7 +1,7 @@
 # Create S3 bucket for Athena query results
 resource "aws_s3_bucket" "athena_results" {
   bucket = "${var.project_name}-${var.environment}-athena-results"
-  
+
   tags = merge(var.tags, {
     Component = "athena"
     Purpose   = "query-results"
@@ -28,7 +28,7 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
 
     result_configuration {
       output_location = "s3://${aws_s3_bucket.athena_results.bucket}/query-results/"
-      
+
       encryption_configuration {
         encryption_option = "SSE_S3"
       }
@@ -128,9 +128,9 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
 
   permissions {
     principal = "arn:aws:quicksight:${var.aws_region}:${var.aws_account_id}:user/${var.quicksight_user}"
-    actions   = [
+    actions = [
       "quicksight:DescribeDataSet",
-      "quicksight:DescribeDataSetPermissions", 
+      "quicksight:DescribeDataSetPermissions",
       "quicksight:PassDataSet",
       "quicksight:UpdateDataSet",
       "quicksight:DeleteDataSet"
