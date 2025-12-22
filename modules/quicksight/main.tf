@@ -26,7 +26,7 @@ data "aws_athena_workgroup" "bedrock_analytics" {
   name = "${var.project_name}-${var.environment}-workgroup"
 }
 
-# Update your QuickSight data source:
+/*# Update your QuickSight data source:
 resource "aws_quicksight_data_source" "athena_source" {
   data_source_id = "${var.project_name}-${var.environment}-athena-source"
   name           = "${var.project_name}-${var.environment}-athena-source"
@@ -45,7 +45,7 @@ resource "aws_quicksight_data_source" "athena_source" {
   ]
 
   tags = var.tags
-}
+}*/
 
 # KEEP ONLY ONE aws_quicksight_data_source resource
 resource "aws_quicksight_data_source" "athena_source" {
