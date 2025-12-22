@@ -64,40 +64,6 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
   })
 }
 
-# Update your QuickSight data source to depend on the workgroup
-resource "aws_quicksight_data_source" "athena_source" {
-  data_source_id = "${var.project_name}-${var.environment}-athena-source"
-  name           = "${var.project_name}-${var.environment}-athena-source"
-  type           = "ATHENA"
-  aws_account_id = var.aws_account_id
-
-  parameters {
-    athena {
-      work_group = aws_athena_workgroup.bedrock_analytics.name
-    }
-  }
-
-  depends_on = [
-    aws_athena_workgroup.bedrock_analytics,
-    aws_s3_bucket.athena_results
-  ]
-
-  tags = var.tags
-}
-
-resource "aws_quicksight_data_source" "athena_source" {
-  data_source_id = "${var.project_name}-${var.environment}-athena-source"
-  name           = "${var.project_name}-${var.environment}-athena-source"
-  type           = "ATHENA"
-  aws_account_id = var.aws_account_id
-
-  parameters {
-    athena {
-      work_group = "${var.project_name}-${var.environment}-workgroup"
-    }
-  }
-}
-
 locals {
   # Generate a consistent hash-based ID
   dataset_id = "${var.project_name}-${var.environment}-metrics-${substr(md5("${var.project_name}-${var.environment}"), 0, 8)}"
