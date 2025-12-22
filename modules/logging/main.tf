@@ -1,6 +1,6 @@
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
-  
+
   common_tags = merge(var.tags, {
     Project     = var.project_name
     Environment = var.environment
@@ -16,8 +16,8 @@ resource "aws_cloudwatch_log_group" "bedrock_logs" {
 }
 
 resource "aws_iam_role" "bedrock_logging_role" {
-  name = "${local.name_prefix}-logging-role"  # bedrock-analytics-dev-logging-role
-  
+  name = "${local.name_prefix}-logging-role" # bedrock-analytics-dev-logging-role
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -38,7 +38,7 @@ resource "aws_iam_role" "bedrock_logging_role" {
 }
 
 resource "aws_iam_policy" "bedrock_logging_policy" {
-  name        = "${local.name_prefix}-logging-policy"  # bedrock-analytics-dev-logging-policy
+  name        = "${local.name_prefix}-logging-policy" # bedrock-analytics-dev-logging-policy
   description = "Policy for Bedrock logging operations"
 
   policy = jsonencode({
