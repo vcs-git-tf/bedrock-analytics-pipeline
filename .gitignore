@@ -10,8 +10,8 @@ crash.log
 crash.*.log
 
 # Exclude all .tfvar files, which are likely to contain sensitive data
-*.tfvars
-*.tfvars.json
+# *.tfvars
+# *.tfvars.json
 
 # Ignore override files as they are usually used for local development
 override.tf
@@ -24,7 +24,7 @@ override.tf.json
 terraform.rc
 
 # Ignore backend configuration
-backend.tfvars
+# backend.tfvars
 
 # Ignore lock files
 .terraform.lock.hcl
