@@ -1,3 +1,14 @@
+locals {
+  name_prefix = "${var.project_name}-${var.environment}"
+  
+  common_tags = merge(var.tags, {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "terraform"
+    Component   = "logging"
+  })
+}
+
 resource "aws_cloudwatch_log_group" "bedrock_logs" {
   name              = "bedrock-analytics-logs"
   retention_in_days = var.log_retention
@@ -5,27 +16,30 @@ resource "aws_cloudwatch_log_group" "bedrock_logs" {
 }
 
 resource "aws_iam_role" "bedrock_logging_role" {
-  name = var.bedrock_logging_role_name
-
+  name = "${local.name_prefix}-logging-role"  # bedrock-analytics-dev-logging-role
+  
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
+        Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "bedrock.amazonaws.com"
+          Service = [
+            "bedrock.amazonaws.com",
+            "logs.amazonaws.com"
+          ]
         }
-        Action = "sts:AssumeRole"
       }
     ]
   })
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
 resource "aws_iam_policy" "bedrock_logging_policy" {
-  name        = "${var.bedrock_logging_role_name}-policy"
-  description = "Policy for Bedrock logging to CloudWatch and S3"
+  name        = "${local.name_prefix}-logging-policy"  # bedrock-analytics-dev-logging-policy
+  description = "Policy for Bedrock logging operations"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -36,30 +50,18 @@ resource "aws_iam_policy" "bedrock_logging_policy" {
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
+          "logs:DescribeLogGroups",
           "logs:DescribeLogStreams"
         ]
-        Resource = [
-          "${aws_cloudwatch_log_group.bedrock_logs.arn}",
-          "${aws_cloudwatch_log_group.bedrock_logs.arn}:*"
-        ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          var.s3_bucket_arn,
-          "${var.s3_bucket_arn}/*"
-        ]
+        Resource = "arn:aws:logs:*:*:*"
       }
     ]
   })
+
+  tags = local.common_tags
 }
 
-resource "aws_iam_role_policy_attachment" "bedrock_logging_attachment" {
+resource "aws_iam_role_policy_attachment" "bedrock_logging_policy_attachment" {
   role       = aws_iam_role.bedrock_logging_role.name
   policy_arn = aws_iam_policy.bedrock_logging_policy.arn
 }
