@@ -20,7 +20,7 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
   data_set_id    = local.dataset_id
   name           = "${var.project_name}-${var.environment}-metrics-dataset"
   aws_account_id = var.aws_account_id
-  import_mode = "SPICE"  # Changed from DIRECT_QUERY
+  import_mode    = "SPICE" # Changed from DIRECT_QUERY
 
   physical_table_map {
     physical_table_map_id = "BedrockMetricsTable"
