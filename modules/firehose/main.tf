@@ -133,7 +133,7 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_firehose_attachment" {
 resource "aws_cloudwatch_log_subscription_filter" "bedrock_to_firehose" {
   name            = "${var.project_name}-${var.environment}-bedrock-to-firehose"
   log_group_name  = var.log_group_name
-  filter_pattern  = ""
+  filter_pattern  = var.filter_pattern
   destination_arn = aws_kinesis_firehose_delivery_stream.bedrock_metrics_stream.arn
   role_arn        = aws_iam_role.cloudwatch_subscription_role.arn
 }

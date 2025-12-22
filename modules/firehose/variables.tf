@@ -50,3 +50,9 @@ variable "metrics_prefix" {
   type        = string
   default     = "bedrock-metrics/"
 }
+
+variable "filter_pattern" {
+  description = "CloudWatch log filter pattern"
+  type        = string
+  default     = ""
+}
