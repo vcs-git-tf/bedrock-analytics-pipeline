@@ -12,3 +12,8 @@ output "table_name" {
   description = "Name of the Athena table"
   value       = "bedrock_metrics"
 }
+
+output "athena_results_bucket_name" {
+  description = "Name of the S3 bucket for Athena query results"
+  value       = aws_s3_bucket.athena_results.bucket
+}

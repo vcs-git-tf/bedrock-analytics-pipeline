@@ -1,6 +1,29 @@
-resource "aws_athena_database" "bedrock_analytics" {
-  name   = var.database_name
-  bucket = var.s3_bucket_id
+resource "aws_s3_bucket" "athena_results" {
+  bucket = "${var.project_name}-${var.environment}-metrics"
+  
+  tags = merge(var.tags, {
+    Component = "athena"
+    Purpose   = "query-results"
+  })
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
+  bucket = aws_s3_bucket.athena_results.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "athena_results" {
+  bucket = aws_s3_bucket.athena_results.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 resource "aws_athena_workgroup" "bedrock_analytics" {
@@ -11,8 +34,8 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
     publish_cloudwatch_metrics_enabled = true
 
     result_configuration {
-      output_location = "s3://${var.s3_bucket_id}/query-results/"
-
+      output_location = "s3://${aws_s3_bucket.athena_results.bucket}/query-results/"
+      
       encryption_configuration {
         encryption_option = "SSE_S3"
       }
@@ -24,23 +47,4 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
   })
 }
 
-resource "aws_athena_named_query" "create_table" {
-  name      = "${var.project_name}-${var.environment}-create-table"
-  workgroup = aws_athena_workgroup.bedrock_analytics.name
-  database  = aws_athena_database.bedrock_analytics.name
-
-  query = <<EOF
-CREATE EXTERNAL TABLE IF NOT EXISTS ${var.database_name}.bedrock_metrics (
-  requestId STRING,
-  modelId STRING,
-  latencyMs DOUBLE,
-  inputTokenCount INT,
-  outputTokenCount INT,
-  totalTokenCount INT,
-  timestamp TIMESTAMP
-)
-ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe'
-LOCATION 's3://${var.s3_bucket_id}/${var.metrics_prefix}'
-TBLPROPERTIES ('has_encrypted_data'='false')
-EOF
-}
+# ... rest of your athena resources
