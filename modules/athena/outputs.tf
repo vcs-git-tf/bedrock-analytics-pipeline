@@ -22,3 +22,8 @@ output "workgroup_arn" {
   description = "ARN of the Athena workgroup"
   value       = aws_athena_workgroup.bedrock_analytics.arn
 }
+
+output "athena_results_bucket_arn" {
+  description = "ARN of the S3 bucket for Athena query results"
+  value       = aws_s3_bucket.athena_results.arn
+}
