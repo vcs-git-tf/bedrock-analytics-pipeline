@@ -49,5 +49,5 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
 
 resource "aws_athena_database" "bedrock_analytics" {
   name   = var.database_name
-  bucket = "${var.project_name}-${var.environment}-metrics"  # or the correct bucket reference
+  bucket = "${var.project_name}-${var.environment}-metrics" # or the correct bucket reference
 }
