@@ -1,7 +1,7 @@
 # Create S3 bucket for Athena query results
 resource "aws_s3_bucket" "athena_results" {
   bucket = "${var.project_name}-${var.environment}-athena-results"
-  
+
   tags = merge(var.tags, {
     Component = "athena"
     Purpose   = "query-results"
@@ -32,7 +32,7 @@ resource "aws_quicksight_data_source" "athena_source" {
 
   parameters {
     athena {
-      work_group = var.athena_workgroup_name  # Use the variable instead
+      work_group = var.athena_workgroup_name # Use the variable instead
     }
   }
 

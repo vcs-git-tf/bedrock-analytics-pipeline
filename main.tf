@@ -36,28 +36,28 @@ module "firehose" {
 
 module "athena" {
   source = "./modules/athena"
-  
+
   project_name   = var.project_name
   environment    = var.environment
   database_name  = var.athena_database_name
   s3_bucket_id   = module.storage.bucket_name
   s3_bucket_arn  = module.storage.metrics_bucket_arn
   metrics_prefix = var.metrics_prefix
-  tags          = local.tags
+  tags           = local.tags
 }
 
 module "quicksight" {
   source = "./modules/quicksight"
-  
+
   project_name          = var.project_name
-  environment          = var.environment
-  aws_account_id       = var.aws_account_id
-  aws_region           = var.aws_region
-  athena_workgroup_name = module.athena.workgroup_name  # Pass the workgroup name
+  environment           = var.environment
+  aws_account_id        = var.aws_account_id
+  aws_region            = var.aws_region
+  athena_workgroup_name = module.athena.workgroup_name # Pass the workgroup name
   athena_database_name  = module.athena.database_name
   athena_table_name     = module.athena.table_name
-  quicksight_user      = var.quicksight_user
-  tags                 = local.tags
-  
+  quicksight_user       = var.quicksight_user
+  tags                  = local.tags
+
   depends_on = [module.athena]
 }
