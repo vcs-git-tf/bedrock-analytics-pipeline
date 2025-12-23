@@ -47,4 +47,7 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
   })
 }
 
-# ... rest of your athena resources
+resource "aws_athena_database" "bedrock_analytics" {
+  name   = var.database_name
+  bucket = "${var.project_name}-${var.environment}-metrics"  # or the correct bucket reference
+}
