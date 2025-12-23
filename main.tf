@@ -49,17 +49,17 @@ module "athena" {
 module "quicksight" {
   source = "./modules/quicksight"
 
-  project_name          = var.project_name
-  environment           = var.environment
-  aws_account_id        = var.aws_account_id
-  aws_region            = var.aws_region
-  athena_workgroup_name = module.athena.workgroup_name # Pass the workgroup name
-  athena_workgroup_arn     = module.athena.workgroup_arn          # Add this
+  project_name              = var.project_name
+  environment               = var.environment
+  aws_account_id            = var.aws_account_id
+  aws_region                = var.aws_region
+  athena_workgroup_name     = module.athena.workgroup_name # Pass the workgroup name
+  athena_workgroup_arn      = module.athena.workgroup_arn  # Add this
   athena_results_bucket_arn = module.athena.athena_results_bucket_arn
-  athena_database_name  = module.athena.database_name
-  athena_table_name     = module.athena.table_name
-  quicksight_user       = var.quicksight_user
-  tags                  = local.tags
+  athena_database_name      = module.athena.database_name
+  athena_table_name         = module.athena.table_name
+  quicksight_user           = var.quicksight_user
+  tags                      = local.tags
 
   depends_on = [module.athena]
 }
