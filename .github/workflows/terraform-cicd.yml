@@ -112,8 +112,8 @@ jobs:
       - name: Terraform Init
         run: terraform init 
 
-      - name: Terraform Import
-        run: terraform import module.quicksight.aws_athena_workgroup.bedrock_analytics bedrock-analytics-dev-workgroup
+      # - name: Terraform Import
+      #   run: terraform import module.quicksight.aws_athena_workgroup.bedrock_analytics bedrock-analytics-dev-workgroup
       
       - name: Terraform Plan
         id: plan
