@@ -10,5 +10,5 @@ output "quicksight_data_source_id" {
 
 output "quicksight_dataset_arn" {
   description = "ARN of the QuickSight dataset"
-  value       = aws_quicksight_data_set.bedrock_metrics_dataset.arn # ✅ This is correct
+  value       = "${var.project_name}-${var.environment}-athena-source" # ✅ This is correct
 }
