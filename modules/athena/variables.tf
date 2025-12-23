@@ -33,3 +33,9 @@ variable "metrics_prefix" {
   type        = string
   default     = "bedrock-metrics/"
 }
+
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
+}

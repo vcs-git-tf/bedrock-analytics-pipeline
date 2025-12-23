@@ -38,3 +38,14 @@ variable "aws_region" {
   type        = string
   default     = "us-east-1"
 }
+
+variable "athena_workgroup_name" {
+  description = "Name of the Athena workgroup to use"
+  type        = string
+}
+
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
+}

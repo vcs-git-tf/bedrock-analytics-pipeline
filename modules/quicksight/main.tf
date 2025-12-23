@@ -1,7 +1,7 @@
 # Create S3 bucket for Athena query results
 resource "aws_s3_bucket" "athena_results" {
   bucket = "${var.project_name}-${var.environment}-athena-results"
-
+  
   tags = merge(var.tags, {
     Component = "athena"
     Purpose   = "query-results"
@@ -18,15 +18,12 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
   }
 }
 
-# Remove this resource block entirely:
-# resource "aws_athena_workgroup" "bedrock_analytics" { ... }
+# REMOVE THIS - it doesn't exist as a data source:
+# data "aws_athena_workgroup" "bedrock_analytics" {
+#   name = "${var.project_name}-${var.environment}-workgroup"
+# }
 
-# Replace with a data source to reference the workgroup created by the athena module:
-data "aws_athena_workgroup" "bedrock_analytics" {
-  name = "${var.project_name}-${var.environment}-workgroup"
-}
-
-# Update your QuickSight data source:
+# Use the workgroup name passed from the athena module
 resource "aws_quicksight_data_source" "athena_source" {
   data_source_id = "${var.project_name}-${var.environment}-athena-source"
   name           = "${var.project_name}-${var.environment}-athena-source"
@@ -35,38 +32,18 @@ resource "aws_quicksight_data_source" "athena_source" {
 
   parameters {
     athena {
-      work_group = data.aws_athena_workgroup.bedrock_analytics.name
+      work_group = var.athena_workgroup_name  # Use the variable instead
     }
   }
 
   depends_on = [
-    data.aws_athena_workgroup.bedrock_analytics,
     aws_s3_bucket.athena_results
   ]
 
   tags = var.tags
 }
 
-/*# KEEP ONLY ONE aws_quicksight_data_source resource
-resource "aws_quicksight_data_source" "athena_source" {
-  data_source_id = "${var.project_name}-${var.environment}-athena-source"
-  name           = "${var.project_name}-${var.environment}-athena-source"
-  type           = "ATHENA"
-  aws_account_id = var.aws_account_id
-
-  parameters {
-    athena {
-      work_group = aws_athena_workgroup.bedrock_analytics.name
-    }
-  }
-
-  depends_on = [
-    aws_athena_workgroup.bedrock_analytics,
-    aws_s3_bucket.athena_results
-  ]
-
-  tags = var.tags
-}*/
+# Remove the commented out duplicate resource
 
 locals {
   # Generate a consistent hash-based ID
