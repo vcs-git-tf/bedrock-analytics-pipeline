@@ -30,7 +30,7 @@ resource "aws_quicksight_data_source" "athena_source" {
   # Use variable references to establish implicit dependencies
   # The fact that we're using variables from the athena module
   # ensures this resource waits for the athena module to complete
-  
+
   tags = var.tags
 
   lifecycle {
