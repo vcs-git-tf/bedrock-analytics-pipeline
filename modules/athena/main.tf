@@ -3,8 +3,8 @@
 # Create S3 bucket with proper configuration for Athena
 resource "aws_s3_bucket" "athena_results" {
   bucket        = "${var.project_name}-${var.environment}-metrics"
-  force_destroy = true  # Allow Terraform to delete bucket even if not empty
-  
+  force_destroy = true # Allow Terraform to delete bucket even if not empty
+
   tags = merge(var.tags, {
     Component = "athena"
     Purpose   = "query-results"
@@ -43,10 +43,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
 
 # Create a test object to ensure bucket is working
 resource "aws_s3_object" "test_object" {
-  bucket = aws_s3_bucket.athena_results.id
-  key    = "query-results/.keep"
+  bucket  = aws_s3_bucket.athena_results.id
+  key     = "query-results/.keep"
   content = "This file ensures the query-results prefix exists"
-  
+
   depends_on = [aws_s3_bucket.athena_results]
 }
 
@@ -60,7 +60,7 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
 
     result_configuration {
       output_location = "s3://${aws_s3_bucket.athena_results.bucket}/query-results/"
-      
+
       encryption_configuration {
         encryption_option = "SSE_S3"
       }
