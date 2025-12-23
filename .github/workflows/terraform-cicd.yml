@@ -196,6 +196,18 @@ jobs:
           # Check query status
           aws athena get-query-execution --query-execution-id $QUERY_ID
 
+      - name: Import Existing QuickSight Data Source
+        run: |
+          echo "Importing existing QuickSight data source if it exists..."
+    
+          # Get AWS Account ID
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+    
+          # Import QuickSight data source
+          terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "QuickSight data source import failed or already imported"
+    
+          continue-on-error: true
+
       - name: Import Existing QuickSight Resources
         run: |
           echo "Importing existing QuickSight resources if they exist..."
