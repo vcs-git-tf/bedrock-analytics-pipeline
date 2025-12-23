@@ -169,6 +169,33 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Test Athena Configuration
+        run: |
+          echo "Testing Athena workgroup configuration..."
+          
+          # Test if workgroup exists and is configured
+          aws athena get-work-group --work-group bedrock-analytics-dev-workgroup
+          
+          # Test if bucket is accessible
+          aws s3 ls s3://bedrock-analytics-dev-metrics/
+          
+          # Try to create the query-results folder
+          aws s3api put-object --bucket bedrock-analytics-dev-metrics --key query-results/
+          
+          # Test a simple Athena query
+          QUERY_ID=$(aws athena start-query-execution \
+            --query-string "SELECT 1 as test_column" \
+            --work-group bedrock-analytics-dev-workgroup \
+            --query 'QueryExecutionId' --output text)
+          
+          echo "Query ID: $QUERY_ID"
+          
+          # Wait for query to complete
+          sleep 10
+          
+          # Check query status
+          aws athena get-query-execution --query-execution-id $QUERY_ID
+
       - name: Terraform Apply
         run: |
           ENV=${{ github.event.inputs.environment || env.ENV }}
