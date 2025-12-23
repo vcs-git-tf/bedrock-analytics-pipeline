@@ -15,7 +15,7 @@ variable "athena_results_bucket_arn" {
 }
 
 # Create QuickSight data source with proper dependency management
-resource "aws_quicksight_data_source" "bedrock_analytics" {
+resource "aws_quicksight_data_source" "athena_source" {
   data_source_id = "${var.project_name}-${var.environment}-athena-source"
   name           = "${var.project_name}-${var.environment}-athena-source"
   type           = "ATHENA"
