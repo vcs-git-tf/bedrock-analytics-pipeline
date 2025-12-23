@@ -206,7 +206,7 @@ jobs:
           # Import QuickSight data source
           terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "QuickSight data source import failed or already imported"
     
-          continue-on-error: true
+        continue-on-error: true
 
       - name: Import Existing QuickSight Resources
         run: |
