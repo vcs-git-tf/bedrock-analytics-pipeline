@@ -46,7 +46,7 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
     aws_s3_bucket.athena_results,
     aws_s3_bucket_policy.athena_results_policy
   ]
-  
+
   tags = merge(var.tags, {
     Component = "athena"
   })
