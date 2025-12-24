@@ -114,3 +114,8 @@ variable "quicksight_dataset_import_mode" {
   type        = string
   default     = "SPICE"
 }
+variable "enable_quicksight_refresh" {
+  description = "Enable QuickSight dataset refresh schedule"
+  type        = bool
+  default     = false
+}

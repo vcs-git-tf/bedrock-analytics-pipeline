@@ -62,7 +62,7 @@ module "quicksight" {
   create_analysis           = var.create_quicksight_analysis
   create_dashboard          = var.create_quicksight_dashboard
   dataset_import_mode       = var.quicksight_dataset_import_mode
-  enable_refresh_schedule   = false # Set to true if you want scheduled refreshes
+  enable_refresh_schedule   = var.enable_quicksight_refresh
   tags                      = local.tags
 
   depends_on = [module.athena]

@@ -65,6 +65,11 @@ variable "quicksight_user" {
   description = "QuickSight user name for permissions (optional)"
   type        = string
   default     = ""
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9@._-]*$", var.quicksight_user))
+    error_message = "QuickSight user must contain only alphanumeric characters, @, ., _, or - symbols."
+  }
 }
 
 variable "dataset_import_mode" {
@@ -100,6 +105,11 @@ variable "refresh_lookback_window_size" {
   description = "Size of the lookback window for incremental refresh"
   type        = number
   default     = 5
+
+  validation {
+    condition     = var.refresh_lookback_window_size > 0 && var.refresh_lookback_window_size <= 365
+    error_message = "Refresh lookback window size must be between 1 and 365."
+  }
 }
 
 variable "refresh_lookback_window_unit" {
@@ -117,6 +127,11 @@ variable "refresh_start_time" {
   description = "Start time for refresh schedule (ISO 8601 format)"
   type        = string
   default     = "2024-01-01T00:00:00Z"
+
+  validation {
+    condition     = can(formatdate("RFC3339", var.refresh_start_time))
+    error_message = "Refresh start time must be in valid ISO 8601 format."
+  }
 }
 
 variable "refresh_timezone" {

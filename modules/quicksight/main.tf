@@ -1,4 +1,9 @@
-# In modules/quicksight/main.tf - Enhanced locals
+# Data sources for current AWS context
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
+data "aws_region" "current" {}
+
+# Local values for consistent naming and configuration
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
   dataset_id  = "${local.name_prefix}-metrics-${substr(md5("${var.project_name}-${var.environment}"), 0, 8)}"
@@ -18,10 +23,129 @@ locals {
   spice_refresh_list    = var.dataset_import_mode == "SPICE" ? ["enabled"] : []
 }
 
-# Complete corrected aws_quicksight_data_set resource
+# IAM role for QuickSight service operations
+resource "aws_iam_role" "quicksight_service_role" {
+  name = "${local.name_prefix}-quicksight-service-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "quicksight.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+# IAM policy for QuickSight to access Athena and S3
+resource "aws_iam_policy" "quicksight_service_policy" {
+  name        = "${local.name_prefix}-quicksight-service-policy"
+  description = "Policy for QuickSight to access Athena, S3, and Glue resources"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AthenaAccess"
+        Effect = "Allow"
+        Action = [
+          "athena:BatchGetQueryExecution",
+          "athena:GetQueryExecution",
+          "athena:GetQueryResults",
+          "athena:GetWorkGroup",
+          "athena:ListQueryExecutions",
+          "athena:StartQueryExecution",
+          "athena:StopQueryExecution",
+          "athena:GetDataCatalog",
+          "athena:GetDatabase",
+          "athena:GetTableMetadata",
+          "athena:ListDatabases",
+          "athena:ListDataCatalogs",
+          "athena:ListTableMetadata",
+          "athena:ListWorkGroups"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "S3Access"
+        Effect = "Allow"
+        Action = [
+          "s3:GetBucketLocation",
+          "s3:GetObject",
+          "s3:ListBucket",
+          "s3:ListBucketMultipartUploads",
+          "s3:ListMultipartUploadParts",
+          "s3:AbortMultipartUpload",
+          "s3:PutObject"
+        ]
+        Resource = [
+          var.athena_results_bucket_arn,
+          "${var.athena_results_bucket_arn}/*"
+        ]
+      },
+      {
+        Sid    = "GlueAccess"
+        Effect = "Allow"
+        Action = [
+          "glue:GetDatabase",
+          "glue:GetDatabases",
+          "glue:GetTable",
+          "glue:GetTables",
+          "glue:GetPartition",
+          "glue:GetPartitions"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+# Attach policy to role
+resource "aws_iam_role_policy_attachment" "quicksight_service_policy_attachment" {
+  role       = aws_iam_role.quicksight_service_role.name
+  policy_arn = aws_iam_policy.quicksight_service_policy.arn
+}
+
+# QuickSight Data Source
+resource "aws_quicksight_data_source" "athena_source" {
+  data_source_id = "${local.name_prefix}-athena-source"
+  name           = "${local.name_prefix}-athena-source"
+  type           = "ATHENA"
+  aws_account_id = var.aws_account_id
+
+  parameters {
+    athena {
+      work_group = var.athena_workgroup_name
+    }
+  }
+
+  ssl_properties {
+    disable_ssl = false
+  }
+
+  tags = local.common_tags
+
+  depends_on = [
+    aws_iam_role_policy_attachment.quicksight_service_policy_attachment
+  ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# QuickSight Dataset
 resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
-  data_set_id    = "${var.project_name}-${var.environment}-dataset_id"
-  name           = "${var.project_name}-${var.environment}-metrics-dataset"
+  data_set_id    = local.dataset_id
+  name           = "${local.name_prefix}-metrics-dataset"
   aws_account_id = var.aws_account_id
   import_mode    = var.dataset_import_mode
 
@@ -118,7 +242,7 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
 
   # User permissions (conditional) - CORRECTED
   dynamic "permissions" {
-    for_each = var.quicksight_user != null ? [var.quicksight_user] : []
+    for_each = local.user_permissions_list
     content {
       principal = permissions.value
       actions = [
@@ -133,7 +257,7 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
 
   # Refresh properties for SPICE datasets - CORRECTED
   dynamic "refresh_properties" {
-    for_each = var.dataset_import_mode == "SPICE" ? [1] : []
+    for_each = local.spice_refresh_list
     content {
       refresh_configuration {
         incremental_refresh {
@@ -151,15 +275,15 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
     aws_quicksight_data_source.athena_source
   ]
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
-# Complete corrected aws_quicksight_analysis resource
+# QuickSight Analysis
 resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
   count = var.create_analysis ? 1 : 0
 
-  analysis_id    = "${var.project_name}-${var.environment}-analysis"
-  name           = "${var.project_name}-${var.environment} Bedrock Metrics Analysis"
+  analysis_id    = "${local.name_prefix}-analysis"
+  name           = "${local.name_prefix} Bedrock Metrics Analysis"
   aws_account_id = var.aws_account_id
 
   definition {
@@ -247,7 +371,7 @@ resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
 
   # User permissions (conditional) - CORRECTED
   dynamic "permissions" {
-    for_each = var.quicksight_user != null ? [var.quicksight_user] : []
+    for_each = local.user_permissions_list
     content {
       principal = permissions.value
       actions = [
@@ -266,15 +390,15 @@ resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
     aws_quicksight_data_set.bedrock_metrics_dataset
   ]
 
-  tags = var.tags
+  tags = local.common_tags
 }
 
-# Complete corrected aws_quicksight_dashboard resource
+# QuickSight Dashboard
 resource "aws_quicksight_dashboard" "bedrock_metrics_dashboard" {
   count = var.create_analysis && var.create_dashboard ? 1 : 0
 
-  dashboard_id        = "${var.project_name}-${var.environment}-dashboard"
-  name                = "${var.project_name}-${var.environment} Bedrock Metrics Dashboard"
+  dashboard_id        = "${local.name_prefix}-dashboard"
+  name                = "${local.name_prefix} Bedrock Metrics Dashboard"
   aws_account_id      = var.aws_account_id
   version_description = "Initial version of Bedrock metrics dashboard"
 
@@ -284,6 +408,7 @@ resource "aws_quicksight_dashboard" "bedrock_metrics_dashboard" {
         data_set_arn         = aws_quicksight_data_set.bedrock_metrics_dataset.arn
         data_set_placeholder = "bedrock_metrics"
       }
+      # FIXED: Correct array indexing
       arn = aws_quicksight_analysis.bedrock_metrics_analysis[0].arn
     }
   }
@@ -305,7 +430,7 @@ resource "aws_quicksight_dashboard" "bedrock_metrics_dashboard" {
 
   # User permissions (conditional) - CORRECTED
   dynamic "permissions" {
-    for_each = var.quicksight_user != null ? [var.quicksight_user] : []
+    for_each = local.user_permissions_list
     content {
       principal = permissions.value
       actions = [
@@ -325,5 +450,27 @@ resource "aws_quicksight_dashboard" "bedrock_metrics_dashboard" {
     aws_quicksight_analysis.bedrock_metrics_analysis[0]
   ]
 
-  tags = var.tags
+  tags = local.common_tags
+}
+
+# Data source refresh schedule (for SPICE datasets)
+resource "aws_quicksight_refresh_schedule" "bedrock_metrics_refresh" {
+  count = var.dataset_import_mode == "SPICE" && var.enable_refresh_schedule ? 1 : 0
+
+  data_set_id    = aws_quicksight_data_set.bedrock_metrics_dataset.data_set_id
+  aws_account_id = var.aws_account_id
+  schedule_id    = "${local.name_prefix}-refresh-schedule"
+
+  schedule {
+    refresh_type          = "INCREMENTAL_REFRESH"
+    start_after_date_time = var.refresh_start_time
+    schedule_frequency {
+      interval        = var.refresh_interval
+      time_of_the_day = var.refresh_time_of_day
+    }
+  }
+
+  depends_on = [
+    aws_quicksight_data_set.bedrock_metrics_dataset
+  ]
 }
