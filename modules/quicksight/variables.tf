@@ -4,13 +4,38 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "Environment (dev, staging, prod)"
+  description = "Environment name"
   type        = string
 }
 
-variable "tags" {
-  description = "Tags to apply to all resources"
-  type        = map(string)
+variable "aws_account_id" {
+  description = "AWS Account ID"
+  type        = string
+}
+
+variable "aws_region" {
+  description = "AWS Region"
+  type        = string
+}
+
+variable "athena_workgroup_name" {
+  description = "Name of the Athena workgroup to use"
+  type        = string
+}
+
+variable "athena_workgroup_arn" {
+  description = "ARN of the Athena workgroup"
+  type        = string
+}
+
+variable "athena_results_bucket_arn" {
+  description = "ARN of the S3 bucket for Athena results"
+  type        = string
+}
+
+variable "quicksight_service_role_arn" {
+  description = "ARN of the QuickSight service role"
+  type        = string
 }
 
 variable "athena_database_name" {
@@ -21,25 +46,17 @@ variable "athena_database_name" {
 variable "athena_table_name" {
   description = "Name of the Athena table"
   type        = string
+  default     = "bedrock_metrics"
 }
 
 variable "quicksight_user" {
-  description = "QuickSight user to grant access to the dataset"
+  description = "QuickSight user for permissions (optional)"
   type        = string
+  default     = ""
 }
 
-variable "aws_account_id" {
-  description = "AWS account ID"
-  type        = string
-}
-
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-east-1"
-}
-
-variable "athena_workgroup_name" {
-  description = "Name of the Athena workgroup to use"
-  type        = string
+variable "tags" {
+  description = "Tags to apply to resources"
+  type        = map(string)
+  default     = {}
 }

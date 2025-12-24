@@ -1,19 +1,59 @@
-# Remove the invalid service-linked role:
-# resource "aws_iam_service_linked_role" "athena" { ... }
+# Get current AWS account and caller identity
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
 
-# Create IAM role for Athena operations (if needed for cross-service access)
-resource "aws_iam_role" "athena_execution_role" {
-  name = "${var.project_name}-${var.environment}-athena-execution-role"
+# S3 bucket for Athena query results
+resource "aws_s3_bucket" "athena_results" {
+  bucket = "${var.project_name}-${var.environment}-metrics"
+  
+  tags = merge(var.tags, {
+    Component = "athena"
+    Purpose   = "query-results"
+  })
+}
+
+# S3 bucket public access block
+resource "aws_s3_bucket_public_access_block" "athena_results" {
+  bucket = aws_s3_bucket.athena_results.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# S3 bucket server-side encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
+  bucket = aws_s3_bucket.athena_results.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+# IAM role for QuickSight to access Athena and S3
+resource "aws_iam_role" "quicksight_athena_role" {
+  name = "${var.project_name}-${var.environment}-quicksight-athena-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "athena.amazonaws.com"
+          Service = "quicksight.amazonaws.com"
         }
+        Action = "sts:AssumeRole"
+      },
+      {
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action = "sts:AssumeRole"
       }
     ]
   })
@@ -21,14 +61,34 @@ resource "aws_iam_role" "athena_execution_role" {
   tags = var.tags
 }
 
-# IAM policy for Athena to access S3 and Glue
-resource "aws_iam_policy" "athena_execution_policy" {
-  name        = "${var.project_name}-${var.environment}-athena-execution-policy"
-  description = "Policy for Athena to access S3 and Glue resources"
+# Comprehensive IAM policy for QuickSight-Athena integration
+resource "aws_iam_policy" "quicksight_athena_policy" {
+  name        = "${var.project_name}-${var.environment}-quicksight-athena-policy"
+  description = "Comprehensive policy for QuickSight to access Athena, S3, and Glue"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "athena:BatchGetQueryExecution",
+          "athena:GetQueryExecution",
+          "athena:GetQueryResults",
+          "athena:GetWorkGroup",
+          "athena:ListQueryExecutions",
+          "athena:StartQueryExecution",
+          "athena:StopQueryExecution",
+          "athena:GetDataCatalog",
+          "athena:GetDatabase",
+          "athena:GetTableMetadata",
+          "athena:ListDatabases",
+          "athena:ListDataCatalogs",
+          "athena:ListTableMetadata",
+          "athena:ListWorkGroups"
+        ]
+        Resource = "*"
+      },
       {
         Effect = "Allow"
         Action = [
@@ -39,7 +99,8 @@ resource "aws_iam_policy" "athena_execution_policy" {
           "s3:ListMultipartUploadParts",
           "s3:AbortMultipartUpload",
           "s3:PutObject",
-          "s3:PutObjectAcl"
+          "s3:PutObjectAcl",
+          "s3:CreateBucket"
         ]
         Resource = [
           aws_s3_bucket.athena_results.arn,
@@ -54,7 +115,10 @@ resource "aws_iam_policy" "athena_execution_policy" {
           "glue:GetTable",
           "glue:GetTables",
           "glue:GetPartition",
-          "glue:GetPartitions"
+          "glue:GetPartitions",
+          "glue:GetCatalogImportStatus",
+          "glue:CreateDatabase",
+          "glue:CreateTable"
         ]
         Resource = "*"
       }
@@ -64,23 +128,13 @@ resource "aws_iam_policy" "athena_execution_policy" {
   tags = var.tags
 }
 
-# Attach policy to role
-resource "aws_iam_role_policy_attachment" "athena_execution_policy_attachment" {
-  role       = aws_iam_role.athena_execution_role.name
-  policy_arn = aws_iam_policy.athena_execution_policy.arn
+# Attach policy to QuickSight role
+resource "aws_iam_role_policy_attachment" "quicksight_athena_policy_attachment" {
+  role       = aws_iam_role.quicksight_athena_role.name
+  policy_arn = aws_iam_policy.quicksight_athena_policy.arn
 }
 
-# S3 bucket for Athena query results
-resource "aws_s3_bucket" "athena_results" {
-  bucket = "${var.project_name}-${var.environment}-metrics"
-
-  tags = merge(var.tags, {
-    Component = "athena"
-    Purpose   = "query-results"
-  })
-}
-
-# Bucket policy to allow Athena service access
+# S3 bucket policy allowing QuickSight and Athena access
 resource "aws_s3_bucket_policy" "athena_results_policy" {
   bucket = aws_s3_bucket.athena_results.id
 
@@ -88,10 +142,13 @@ resource "aws_s3_bucket_policy" "athena_results_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "AllowCurrentAccountAccess"
+        Sid    = "AllowQuickSightAndAthenaAccess"
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+          AWS = [
+            aws_iam_role.quicksight_athena_role.arn,
+            "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"
+          ]
         }
         Action = [
           "s3:GetBucketLocation",
@@ -111,35 +168,13 @@ resource "aws_s3_bucket_policy" "athena_results_policy" {
     ]
   })
 
-  depends_on = [aws_s3_bucket_public_access_block.athena_results]
+  depends_on = [
+    aws_s3_bucket_public_access_block.athena_results,
+    aws_iam_role.quicksight_athena_role
+  ]
 }
 
-# Get current AWS account ID
-data "aws_caller_identity" "current" {}
-
-# Ensure bucket is private
-resource "aws_s3_bucket_public_access_block" "athena_results" {
-  bucket = aws_s3_bucket.athena_results.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-# Server-side encryption
-resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
-  bucket = aws_s3_bucket.athena_results.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-    bucket_key_enabled = true
-  }
-}
-
-# Athena workgroup with proper configuration
+# Athena workgroup with enhanced configuration
 resource "aws_athena_workgroup" "bedrock_analytics" {
   name = "${var.project_name}-${var.environment}-workgroup"
 
@@ -149,7 +184,7 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
 
     result_configuration {
       output_location = "s3://${aws_s3_bucket.athena_results.bucket}/query-results/"
-
+      
       encryption_configuration {
         encryption_option = "SSE_S3"
       }
@@ -160,11 +195,10 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
     }
   }
 
-  # Update dependencies to use the IAM role instead of service-linked role
   depends_on = [
     aws_s3_bucket.athena_results,
     aws_s3_bucket_policy.athena_results_policy,
-    aws_iam_role.athena_execution_role
+    aws_iam_role.quicksight_athena_role
   ]
 
   tags = merge(var.tags, {
