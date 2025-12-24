@@ -36,8 +36,8 @@ resource "aws_quicksight_data_source" "athena_source" {
 
 # Separate resource for QuickSight data source permissions
 resource "aws_quicksight_data_source_permissions" "athena_source_permissions" {
-  aws_account_id   = var.aws_account_id
-  data_source_id   = aws_quicksight_data_source.athena_source.data_source_id
+  aws_account_id = var.aws_account_id
+  data_source_id = aws_quicksight_data_source.athena_source.data_source_id
 
   permissions {
     principal = var.quicksight_service_role_arn
