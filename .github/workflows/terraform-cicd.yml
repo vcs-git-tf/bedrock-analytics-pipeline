@@ -85,11 +85,11 @@ jobs:
         run: terraform init
 
       # Import to the correct module (athena, not quicksight)
-      - name: Terraform Import
-        run: |
-          # Only import if the workgroup exists and isn't already in state
-          terraform import module.athena.aws_s3_bucket.athena_results bedrock-analytics-dev-metrics || echo "Resource already imported or doesn't exist"
-        continue-on-error: true
+      #- name: Terraform Import
+      #  run: |
+      #    # Only import if the workgroup exists and isn't already in state
+      #    terraform import module.athena.aws_s3_bucket.athena_results bedrock-analytics-dev-metrics || echo "Resource already imported or doesn't exist"
+      #  continue-on-error: true
 
       - name: Test Athena Configuration
         run: |
