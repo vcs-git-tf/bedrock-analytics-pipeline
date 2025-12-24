@@ -56,13 +56,14 @@ module "quicksight" {
   athena_workgroup_name     = module.athena.workgroup_name
   athena_workgroup_arn      = module.athena.workgroup_arn
   athena_results_bucket_arn = module.athena.athena_results_bucket_arn
-  # REMOVE THIS LINE:
-  # quicksight_service_role_arn = module.athena.quicksight_service_role_arn
-  athena_database_name = module.athena.database_name
-  athena_table_name    = "bedrock_metrics"
-  quicksight_user      = var.quicksight_user
-  create_analysis      = var.create_quicksight_analysis
-  tags                 = local.tags
+  athena_database_name      = module.athena.database_name
+  athena_table_name         = "bedrock_metrics"
+  quicksight_user           = var.quicksight_user
+  create_analysis           = var.create_quicksight_analysis
+  create_dashboard          = var.create_quicksight_dashboard
+  dataset_import_mode       = var.quicksight_dataset_import_mode
+  enable_refresh_schedule   = false # Set to true if you want scheduled refreshes
+  tags                      = local.tags
 
   depends_on = [module.athena]
 }

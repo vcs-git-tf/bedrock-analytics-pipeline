@@ -1,9 +1,4 @@
-# Data sources for current AWS context
-data "aws_caller_identity" "current" {}
-data "aws_partition" "current" {}
-data "aws_region" "current" {}
-
-# Local values for consistent naming and configuration
+# In modules/quicksight/main.tf - Enhanced locals
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
   dataset_id  = "${local.name_prefix}-metrics-${substr(md5("${var.project_name}-${var.environment}"), 0, 8)}"
@@ -17,131 +12,16 @@ locals {
 
   # QuickSight user ARN construction
   quicksight_user_arn = var.quicksight_user != "" ? "arn:${data.aws_partition.current.partition}:quicksight:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:user/default/${var.quicksight_user}" : null
+
+  # Helper collections for dynamic blocks
+  user_permissions_list = local.quicksight_user_arn != null ? [local.quicksight_user_arn] : []
+  spice_refresh_list    = var.dataset_import_mode == "SPICE" ? ["enabled"] : []
 }
 
-# IAM role for QuickSight service operations
-resource "aws_iam_role" "quicksight_service_role" {
-  name = "${local.name_prefix}-quicksight-service-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "quicksight.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
-
-  tags = local.common_tags
-}
-
-# IAM policy for QuickSight to access Athena and S3
-resource "aws_iam_policy" "quicksight_service_policy" {
-  name        = "${local.name_prefix}-quicksight-service-policy"
-  description = "Policy for QuickSight to access Athena, S3, and Glue resources"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AthenaAccess"
-        Effect = "Allow"
-        Action = [
-          "athena:BatchGetQueryExecution",
-          "athena:GetQueryExecution",
-          "athena:GetQueryResults",
-          "athena:GetWorkGroup",
-          "athena:ListQueryExecutions",
-          "athena:StartQueryExecution",
-          "athena:StopQueryExecution",
-          "athena:GetDataCatalog",
-          "athena:GetDatabase",
-          "athena:GetTableMetadata",
-          "athena:ListDatabases",
-          "athena:ListDataCatalogs",
-          "athena:ListTableMetadata",
-          "athena:ListWorkGroups"
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "S3Access"
-        Effect = "Allow"
-        Action = [
-          "s3:GetBucketLocation",
-          "s3:GetObject",
-          "s3:ListBucket",
-          "s3:ListBucketMultipartUploads",
-          "s3:ListMultipartUploadParts",
-          "s3:AbortMultipartUpload",
-          "s3:PutObject"
-        ]
-        Resource = [
-          var.athena_results_bucket_arn,
-          "${var.athena_results_bucket_arn}/*"
-        ]
-      },
-      {
-        Sid    = "GlueAccess"
-        Effect = "Allow"
-        Action = [
-          "glue:GetDatabase",
-          "glue:GetDatabases",
-          "glue:GetTable",
-          "glue:GetTables",
-          "glue:GetPartition",
-          "glue:GetPartitions"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-
-  tags = local.common_tags
-}
-
-# Attach policy to role
-resource "aws_iam_role_policy_attachment" "quicksight_service_policy_attachment" {
-  role       = aws_iam_role.quicksight_service_role.name
-  policy_arn = aws_iam_policy.quicksight_service_policy.arn
-}
-
-# QuickSight Data Source
-resource "aws_quicksight_data_source" "athena_source" {
-  data_source_id = "${local.name_prefix}-athena-source"
-  name           = "${local.name_prefix}-athena-source"
-  type           = "ATHENA"
-  aws_account_id = var.aws_account_id
-
-  parameters {
-    athena {
-      work_group = var.athena_workgroup_name
-    }
-  }
-
-  ssl_properties {
-    disable_ssl = false
-  }
-
-  tags = local.common_tags
-
-  depends_on = [
-    aws_iam_role_policy_attachment.quicksight_service_policy_attachment
-  ]
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-# QuickSight Dataset
+# Complete corrected aws_quicksight_data_set resource
 resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
-  data_set_id    = local.dataset_id
-  name           = "${local.name_prefix}-metrics-dataset"
+  data_set_id    = "${var.project_name}-${var.environment}-dataset_id"
+  name           = "${var.project_name}-${var.environment}-metrics-dataset"
   aws_account_id = var.aws_account_id
   import_mode    = var.dataset_import_mode
 
@@ -220,7 +100,7 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
     }
   }
 
-  # Service role permissions
+  # Service role permissions (always present)
   permissions {
     principal = aws_iam_role.quicksight_service_role.arn
     actions = [
@@ -236,11 +116,11 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
     ]
   }
 
-  # User permissions (conditional)
+  # User permissions (conditional) - CORRECTED
   dynamic "permissions" {
-    for_each = local.quicksight_user_arn != null ? [1] : []
+    for_each = var.quicksight_user != null ? [var.quicksight_user] : []
     content {
-      principal = local.quicksight_user_arn
+      principal = permissions.value
       actions = [
         "quicksight:DescribeDataSet",
         "quicksight:DescribeDataSetPermissions",
@@ -251,7 +131,7 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
     }
   }
 
-  # Refresh properties for SPICE datasets
+  # Refresh properties for SPICE datasets - CORRECTED
   dynamic "refresh_properties" {
     for_each = var.dataset_import_mode == "SPICE" ? [1] : []
     content {
@@ -271,15 +151,15 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
     aws_quicksight_data_source.athena_source
   ]
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
-# QuickSight Analysis (simplified version)
+# Complete corrected aws_quicksight_analysis resource
 resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
   count = var.create_analysis ? 1 : 0
 
-  analysis_id    = "${local.name_prefix}-analysis"
-  name           = "${local.name_prefix} Bedrock Metrics Analysis"
+  analysis_id    = "${var.project_name}-${var.environment}-analysis"
+  name           = "${var.project_name}-${var.environment} Bedrock Metrics Analysis"
   aws_account_id = var.aws_account_id
 
   definition {
@@ -351,7 +231,7 @@ resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
     }
   }
 
-  # Service role permissions
+  # Service role permissions (always present)
   permissions {
     principal = aws_iam_role.quicksight_service_role.arn
     actions = [
@@ -365,11 +245,11 @@ resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
     ]
   }
 
-  # User permissions (conditional)
+  # User permissions (conditional) - CORRECTED
   dynamic "permissions" {
-    for_each = local.quicksight_user_arn != null ? [1] : []
+    for_each = var.quicksight_user != null ? [var.quicksight_user] : []
     content {
-      principal = local.quicksight_user_arn
+      principal = permissions.value
       actions = [
         "quicksight:RestoreAnalysis",
         "quicksight:UpdateAnalysisPermissions",
@@ -386,15 +266,15 @@ resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
     aws_quicksight_data_set.bedrock_metrics_dataset
   ]
 
-  tags = local.common_tags
+  tags = var.tags
 }
 
-# QuickSight Dashboard
+# Complete corrected aws_quicksight_dashboard resource
 resource "aws_quicksight_dashboard" "bedrock_metrics_dashboard" {
   count = var.create_analysis && var.create_dashboard ? 1 : 0
 
-  dashboard_id        = "${local.name_prefix}-dashboard"
-  name                = "${local.name_prefix} Bedrock Metrics Dashboard"
+  dashboard_id        = "${var.project_name}-${var.environment}-dashboard"
+  name                = "${var.project_name}-${var.environment} Bedrock Metrics Dashboard"
   aws_account_id      = var.aws_account_id
   version_description = "Initial version of Bedrock metrics dashboard"
 
@@ -408,7 +288,7 @@ resource "aws_quicksight_dashboard" "bedrock_metrics_dashboard" {
     }
   }
 
-  # Service role permissions
+  # Service role permissions (always present)
   permissions {
     principal = aws_iam_role.quicksight_service_role.arn
     actions = [
@@ -423,11 +303,11 @@ resource "aws_quicksight_dashboard" "bedrock_metrics_dashboard" {
     ]
   }
 
-  # User permissions (conditional)
+  # User permissions (conditional) - CORRECTED
   dynamic "permissions" {
-    for_each = local.quicksight_user_arn != null ? [1] : []
+    for_each = var.quicksight_user != null ? [var.quicksight_user] : []
     content {
-      principal = local.quicksight_user_arn
+      principal = permissions.value
       actions = [
         "quicksight:DescribeDashboard",
         "quicksight:ListDashboardVersions",
@@ -445,27 +325,5 @@ resource "aws_quicksight_dashboard" "bedrock_metrics_dashboard" {
     aws_quicksight_analysis.bedrock_metrics_analysis[0]
   ]
 
-  tags = local.common_tags
-}
-
-# Data source refresh schedule (for SPICE datasets)
-resource "aws_quicksight_refresh_schedule" "bedrock_metrics_refresh" {
-  count = var.dataset_import_mode == "SPICE" && var.enable_refresh_schedule ? 1 : 0
-
-  data_set_id    = aws_quicksight_data_set.bedrock_metrics_dataset.data_set_id
-  aws_account_id = var.aws_account_id
-  schedule_id    = "${local.name_prefix}-refresh-schedule"
-
-  schedule {
-    refresh_type          = "INCREMENTAL_REFRESH"
-    start_after_date_time = var.refresh_start_time
-    schedule_frequency {
-      interval        = var.refresh_interval
-      time_of_the_day = var.refresh_time_of_day
-    }
-  }
-
-  depends_on = [
-    aws_quicksight_data_set.bedrock_metrics_dataset
-  ]
+  tags = var.tags
 }

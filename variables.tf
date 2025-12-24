@@ -102,3 +102,15 @@ variable "create_quicksight_analysis" {
   type        = bool
   default     = false
 }
+
+variable "create_quicksight_dashboard" {
+  description = "Whether to create QuickSight dashboard"
+  type        = bool
+  default     = true
+}
+
+variable "quicksight_dataset_import_mode" {
+  description = "QuickSight dataset import mode"
+  type        = string
+  default     = "SPICE"
+}
