@@ -49,19 +49,18 @@ module "athena" {
 module "quicksight" {
   source = "./modules/quicksight"
 
-  project_name                = var.project_name
-  environment                 = var.environment
-  aws_account_id              = var.aws_account_id
-  aws_region                  = var.aws_region
-  athena_workgroup_name       = module.athena.workgroup_name
-  athena_workgroup_arn        = module.athena.workgroup_arn
-  athena_results_bucket_arn   = module.athena.athena_results_bucket_arn
-  quicksight_service_role_arn = module.athena.quicksight_service_role_arn
-  athena_database_name        = module.athena.database_name
-  athena_table_name           = "bedrock_metrics"
-  quicksight_user             = var.quicksight_user
-  create_analysis             = var.create_quicksight_analysis
-  tags                        = local.tags
+  project_name              = var.project_name
+  environment               = var.environment
+  aws_account_id            = var.aws_account_id
+  aws_region                = var.aws_region
+  athena_workgroup_name     = module.athena.workgroup_name
+  athena_workgroup_arn      = module.athena.workgroup_arn
+  athena_results_bucket_arn = module.athena.athena_results_bucket_arn
+  athena_database_name      = module.athena.database_name
+  athena_table_name         = "bedrock_metrics"
+  quicksight_user           = var.quicksight_user
+  create_analysis           = var.create_quicksight_analysis
+  tags                      = local.tags
 
   depends_on = [module.athena]
 }
