@@ -23,21 +23,6 @@ variable "athena_workgroup_name" {
   type        = string
 }
 
-variable "athena_workgroup_arn" {
-  description = "ARN of the Athena workgroup"
-  type        = string
-}
-
-variable "athena_results_bucket_arn" {
-  description = "ARN of the S3 bucket for Athena results"
-  type        = string
-}
-
-variable "quicksight_service_role_arn" {
-  description = "ARN of the QuickSight service role"
-  type        = string
-}
-
 variable "athena_database_name" {
   description = "Name of the Athena database"
   type        = string
