@@ -129,8 +129,8 @@ variable "refresh_start_time" {
   default     = "2024-01-01T00:00:00Z"
 
   validation {
-    condition     = can(formatdate("RFC3339", var.refresh_start_time))
-    error_message = "Refresh start time must be in valid ISO 8601 format."
+    condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z?([+-]\\d{2}:\\d{2})?$", var.refresh_start_time))
+    error_message = "Refresh start time must be in valid ISO 8601 format. Examples: '2024-01-01T00:00:00Z', '2024-01-01T00:00:00.000Z', '2024-01-01T00:00:00+05:00'."
   }
 }
 
