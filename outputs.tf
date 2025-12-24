@@ -18,11 +18,6 @@ output "athena_database_name" {
   value       = module.athena.database_name
 }
 
-output "athena_table_name" {
-  description = "Name of the Athena table"
-  value       = module.athena.table_name
-}
-
 output "bedrock_logging_role_arn" {
   description = "ARN of the Bedrock logging role"
   value       = module.logging.bedrock_logging_role_arn

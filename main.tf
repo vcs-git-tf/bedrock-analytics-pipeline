@@ -59,7 +59,8 @@ module "quicksight" {
   quicksight_service_role_arn = module.athena.quicksight_service_role_arn
   athena_database_name        = module.athena.database_name
   athena_table_name           = "bedrock_metrics"
-  quicksight_user             = var.quicksight_user # Make sure this variable exists
+  quicksight_user             = var.quicksight_user
+  create_analysis             = var.create_quicksight_analysis
   tags                        = local.tags
 
   depends_on = [module.athena]

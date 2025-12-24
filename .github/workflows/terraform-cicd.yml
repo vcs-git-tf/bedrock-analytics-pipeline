@@ -118,7 +118,20 @@ jobs:
           # Check query status
           aws athena get-query-execution --query-execution-id $QUERY_ID
 
-      - name: Import Existing Resources
+      - name: Import Existing IAM Resources
+        run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+    
+          # Import QuickSight resources
+          terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "Data source import failed"
+          terraform import module.quicksight.aws_quicksight_data_set.bedrock_metrics_dataset $AWS_ACCOUNT_ID/bedrock-analytics-dev-metrics-* || echo "Dataset import failed"
+    
+          # Import IAM resources if they exist
+          terraform import module.quicksight.aws_iam_role.quicksight_data_source_role bedrock-analytics-dev-quicksight-datasource-role || echo "IAM role import failed"
+    
+        continue-on-error: true
+
+      - name: Import Existing Athena Resources
         run: |
           echo "Importing existing resources if they exist..."
     

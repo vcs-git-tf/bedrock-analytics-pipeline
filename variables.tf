@@ -75,12 +75,6 @@ variable "athena_database_name" {
   default     = "bedrock_analytics"
 }
 
-variable "quicksight_user" {
-  description = "QuickSight user to grant access to the dataset"
-  type        = string
-  default     = ""
-}
-
 variable "aws_account_id" {
   description = "AWS account ID"
   type        = string
@@ -95,4 +89,16 @@ variable "deploy_quicksight" {
 variable "quicksight_service_role_arn" {
   description = "ARN of the QuickSight service role"
   type        = string
+}
+
+variable "quicksight_user" {
+  description = "QuickSight user name for permissions"
+  type        = string
+  default     = ""
+}
+
+variable "create_quicksight_analysis" {
+  description = "Whether to create QuickSight analysis"
+  type        = bool
+  default     = false
 }
