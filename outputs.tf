@@ -23,7 +23,7 @@ output "bedrock_logging_role_arn" {
   value       = module.logging.bedrock_logging_role_arn
 }
 
-output "quicksight_dataset_arn" {
-  description = "ARN of the QuickSight dataset"
-  value       = var.deploy_quicksight ? module.quicksight.quicksight_dataset_arn : null
-}
+# output "quicksight_dataset_arn" {
+#   description = "ARN of the QuickSight dataset"
+#   value       = var.deploy_quicksight ? module.quicksight.quicksight_dataset_arn : null
+# }
