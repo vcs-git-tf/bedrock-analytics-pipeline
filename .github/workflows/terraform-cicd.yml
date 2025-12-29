@@ -230,6 +230,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     environment: \${{ github.event.inputs.environment || '${ENV}' }}
+    timeout-minutes: 30  # Add overall timeout
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -251,28 +252,67 @@ jobs:
           name: terraform-plan
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -input=false
 
       - name: Import Existing Athena Resources
         run: |
-          echo "Importing existing resources if they exist..."
+          echo "📥 Importing existing resources..."
     
           # Get AWS Account ID
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-    
-          # Import QuickSight resources
-          terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "QuickSight data source import failed or already imported"
 
-        continue-on-error: true 
+          # Function to safely import resources
+          import_resource() {
+          local resource_address=$1
+          local resource_id=$2
+          local resource_name=$3
+          
+          echo "🔄 Attempting to import $resource_name..."
+          if terraform import "$resource_address" "$resource_id" 2>/dev/null; then
+            echo "✅ Successfully imported $resource_name"
+          else
+            echo "⚠️  Import failed for $resource_name (may already be imported or not exist)"
+          fi
+          }
+
+          # Import all resources
+          import_resource "module.athena.aws_s3_bucket.athena_results" "bedrock-analytics-dev-metrics" "S3 Bucket"
+          import_resource "module.athena.aws_athena_workgroup.bedrock_analytics" "bedrock-analytics-dev-workgroup" "Athena Workgroup"
+          import_resource "module.quicksight.aws_quicksight_data_source.athena_source" "$AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source" "QuickSight Data Source"
+          import_resource "module.quicksight.aws_iam_role.quicksight_service_role" "bedrock-analytics-dev-quicksight-service-role" "QuickSight IAM Role"
+
+          echo "✅ Import phase completed"
+        continue-on-error: true
 
       - name: Terraform Apply
+        timeout-minutes: 20
         run: |
           ENV=${{ github.event.inputs.environment || env.ENV }}
-          echo "Applying for environment: $ENV"
-          
+          echo "🚀 Applying Terraform for environment: $ENV"
+
+          # FIXED: Proper bash syntax
           if [ -f "environments/$ENV.tfvars" ]; then
-            terraform apply -auto-approve -var-file=environments/$ENV.tfvars
+            echo "✅ Using tfvars file: environments/$ENV.tfvars"
+            terraform apply -auto-approve -input=false -var-file=environments/$ENV.tfvars
           else
-            echo "No tfvars file found, applying with default values"
-            terraform apply -auto-approve
+            echo "⚠️  No tfvars file found, applying with default values"
+            terraform apply -auto-approve -input=false
           fi
+
+          echo "✅ Apply completed successfully"
+
+      - name: Handle Apply Failures
+        if: failure()
+        run: |
+          echo "❌ Apply failed, running diagnostics..."
+
+          # Show current state
+          terraform state list || echo "No resources in state"
+
+          # Show last few log entries
+          echo "Recent Terraform output:"
+          tail -50 terraform.log 2>/dev/null || echo "No terraform.log found"
+
+          # Check AWS resources directly
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          aws quicksight describe-data-source --aws-account-id $AWS_ACCOUNT_ID --data-source-id bedrock-analytics-dev-athena-source 2>/dev/null || echo "QuickSight data source not found"
