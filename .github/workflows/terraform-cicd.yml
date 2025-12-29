@@ -84,19 +84,107 @@ jobs:
           role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Verify AWS Connection
+        run: |
+          echo "🔐 Verifying AWS connection..."
+          aws sts get-caller-identity
+          echo "✅ AWS connection verified"
+
       - name: Terraform Init
-        run: terraform init
+        run: |
+          echo "🔧 Initializing Terraform..."
+          terraform init -input=false
+          echo "✅ Terraform initialized"
+
+      - name: Import Existing Resources
+        run: |
+          echo "📥 Importing existing resources..."
+        
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        
+          # Import with timeout and error handling
+          timeout 300 terraform import module.athena.aws_s3_bucket.athena_results bedrock-analytics-dev-metrics || echo "S3 bucket import failed or already imported"
+          timeout 300 terraform import module.athena.aws_athena_workgroup.bedrock_analytics bedrock-analytics-dev-workgroup || echo "Workgroup import failed or already imported"
+          timeout 300 terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "Data source import failed or already imported"
+        
+          echo "✅ Import phase completed"
+        continue-on-error: true
+
+      - name: Debug Environment
+        run: |
+          echo "🔍 Environment debugging..."
+          ENV=${{ github.event.inputs.environment || env.ENV }}
+          echo "Target environment: $ENV"
+          echo "Available environment files:"
+          find . -name "*.tfvars" -type f || echo "No .tfvars files found"
+        
+          if [ -f "environments/$ENV.tfvars" ]; then
+            echo "📄 Contents of environments/$ENV.tfvars:"
+            cat environments/$ENV.tfvars
+          fi    
       
       - name: Terraform Plan
         id: plan
+        timeout-minutes: 10
         run: |
+          set -e
+
           ENV=${{ github.event.inputs.environment || env.ENV }}
+
+          # Add debug output
+          export TF_LOG=INFO
+
+          # Check if tfvars file exists (FIXED)
           if [ -f "environments/$ENV.tfvars" ]; then
-            terraform plan -var-file=environments/$ENV.tfvars -out=tfplan
+            echo "✅ Using tfvars file: environments/$ENV.tfvars"
+
+            terraform plan \
+              -input=false \
+              -var-file=environments/$ENV.tfvars \
+              -out=tfplan \
+              -detailed-exitcode \
+              -lock-timeout=5m \
+              -parallelism=10
           else
-            terraform plan -out=tfplan
+            echo "⚠️  Using default values (no tfvars file)"
+
+            terraform plan \
+              -input=false \
+              -out=tfplan \
+              -detailed-exitcode \
+              -lock-timeout=5m \
+              -parallelism=10
           fi
+
+          # Capture exit code
+          PLAN_EXIT_CODE=$?
+          echo "Plan exit code: $PLAN_EXIT_CODE"
+          echo "plan_exit_code=$PLAN_EXIT_CODE" >> $GITHUB_OUTPUT
+
+          # Generate JSON output
+          echo "📊 Generating plan JSON..."
           terraform show -json tfplan > plan.json
+
+          echo "✅ Plan completed successfully"
+
+      - name: Handle Plan Failures
+        if: failure()
+        run: |
+          echo "❌ Plan failed, attempting diagnostics..."
+
+          # Check for common issues
+          echo "🔍 Checking for state lock..."
+          terraform plan 2>&1 | grep -i "lock" || echo "No lock issues detected"
+
+          echo "🔍 Checking provider issues..."
+          terraform providers
+
+          echo "🔍 Checking AWS permissions..."
+          aws iam get-role --role-name GitHubActionsRole || echo "Cannot access GitHubActionsRole"
+
+          # Try to get more detailed error information
+          echo "🔍 Detailed error output:"
+          terraform plan -input=false 2>&1 | tail -20
 
       - name: Create Plan Summary
         run: |
