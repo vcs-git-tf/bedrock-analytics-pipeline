@@ -3,7 +3,7 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
 data "aws_quicksight_user" "current" {
-  user_name = "arn:aws:iam::194191748922:user/tfAdmin01"
+  user_name = "arn:aws:iam::194191748922:role/bedrock-analytics-dev-quicksight-service-role"
 }
 
 # Local values for consistent naming and configuration
