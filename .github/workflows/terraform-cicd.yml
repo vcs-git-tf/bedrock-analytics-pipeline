@@ -260,10 +260,6 @@ jobs:
           # Get AWS Account ID
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
     
-          # Import Athena resources
-          terraform import module.athena.aws_s3_bucket.athena_results bedrock-analytics-dev-metrics || echo "S3 bucket import failed or already imported"
-          terraform import module.athena.aws_athena_workgroup.bedrock_analytics bedrock-analytics-dev-workgroup || echo "Workgroup import failed or already imported"
-    
           # Import QuickSight resources
           terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "QuickSight data source import failed or already imported"
 
