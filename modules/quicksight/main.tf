@@ -415,97 +415,97 @@ resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
 # }
 
 # QuickSight Analysis with corrected permissions
-resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
-  count = var.create_analysis ? 1 : 0
+# resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
+#   count = var.create_analysis ? 1 : 0
 
-  analysis_id    = "${local.name_prefix}-analysis"
-  name           = "${local.name_prefix} Bedrock Metrics Analysis"
-  aws_account_id = var.aws_account_id
+#   analysis_id    = "${local.name_prefix}-analysis"
+#   name           = "${local.name_prefix} Bedrock Metrics Analysis"
+#   aws_account_id = var.aws_account_id
 
-  definition {
-    data_set_identifiers_declarations {
-      data_set_arn = aws_quicksight_data_set.bedrock_metrics_dataset.arn
-      identifier   = "bedrock_metrics_ds"
-    }
+#   definition {
+#     data_set_identifiers_declarations {
+#       data_set_arn = aws_quicksight_data_set.bedrock_metrics_dataset.arn
+#       identifier   = "bedrock_metrics_ds"
+#     }
 
-    # Basic sheet configuration
-    sheets {
-      sheet_id = "overview_sheet"
-      name     = "Overview"
+#     # Basic sheet configuration
+#     sheets {
+#       sheet_id = "overview_sheet"
+#       name     = "Overview"
 
-      visuals {
-        table_visual {
-          visual_id = "metrics_table"
+#       visuals {
+#         table_visual {
+#           visual_id = "metrics_table"
 
-          title {
-            visibility = "VISIBLE"
-            format_text {
-              plain_text = "Bedrock Metrics Summary"
-            }
-          }
+#           title {
+#             visibility = "VISIBLE"
+#             format_text {
+#               plain_text = "Bedrock Metrics Summary"
+#             }
+#           }
 
-          chart_configuration {
-            field_wells {
-              table_aggregated_field_wells {
-                group_by {
-                  categorical_dimension_field {
-                    field_id = "model_dimension"
-                    column {
-                      data_set_identifier = "bedrock_metrics_ds"
-                      column_name         = "modelid"
-                    }
-                  }
-                }
+#           chart_configuration {
+#             field_wells {
+#               table_aggregated_field_wells {
+#                 group_by {
+#                   categorical_dimension_field {
+#                     field_id = "model_dimension"
+#                     column {
+#                       data_set_identifier = "bedrock_metrics_ds"
+#                       column_name         = "modelid"
+#                     }
+#                   }
+#                 }
 
-                values {
-                  numerical_measure_field {
-                    field_id = "total_tokens_measure"
-                    column {
-                      data_set_identifier = "bedrock_metrics_ds"
-                      column_name         = "totaltokencount"
-                    }
-                    aggregation_function {
-                      simple_numerical_aggregation = "SUM"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
+#                 values {
+#                   numerical_measure_field {
+#                     field_id = "total_tokens_measure"
+#                     column {
+#                       data_set_identifier = "bedrock_metrics_ds"
+#                       column_name         = "totaltokencount"
+#                     }
+#                     aggregation_function {
+#                       simple_numerical_aggregation = "SUM"
+#                     }
+#                   }
+#                 }
+#               }
+#             }
+#           }
+#         }
+#       }
+#     }
+#   }
 
-  # REMOVED: IAM role permissions (not supported)
-  # permissions {
-  #   principal = aws_iam_role.quicksight_service_role.arn  # ❌ This would cause the same error
-  #   actions = [...]
-  # }
+#   # REMOVED: IAM role permissions (not supported)
+#   # permissions {
+#   #   principal = aws_iam_role.quicksight_service_role.arn  # ❌ This would cause the same error
+#   #   actions = [...]
+#   # }
 
-  # CORRECTED: Only QuickSight user permissions
-  dynamic "permissions" {
-    for_each = local.user_permissions_list
-    content {
-      principal = permissions.value
-      actions = [
-        "quicksight:RestoreAnalysis",
-        "quicksight:UpdateAnalysisPermissions",
-        "quicksight:DeleteAnalysis",
-        "quicksight:QueryAnalysis",
-        "quicksight:DescribeAnalysisPermissions",
-        "quicksight:DescribeAnalysis",
-        "quicksight:UpdateAnalysis"
-      ]
-    }
-  }
+#   # CORRECTED: Only QuickSight user permissions
+#   dynamic "permissions" {
+#     for_each = local.user_permissions_list
+#     content {
+#       principal = permissions.value
+#       actions = [
+#         "quicksight:RestoreAnalysis",
+#         "quicksight:UpdateAnalysisPermissions",
+#         "quicksight:DeleteAnalysis",
+#         "quicksight:QueryAnalysis",
+#         "quicksight:DescribeAnalysisPermissions",
+#         "quicksight:DescribeAnalysis",
+#         "quicksight:UpdateAnalysis"
+#       ]
+#     }
+#   }
 
-  depends_on = [
-    aws_quicksight_data_set.bedrock_metrics_dataset
-  ]
+#   depends_on = [
+#     aws_quicksight_data_set.bedrock_metrics_dataset
+#   ]
 
-  tags = local.common_tags
-}
+#   tags = local.common_tags
+# }
 
 # Data source refresh schedule (for SPICE datasets)
 resource "aws_quicksight_refresh_schedule" "bedrock_metrics_refresh" {
