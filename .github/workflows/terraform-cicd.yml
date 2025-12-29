@@ -261,6 +261,30 @@ jobs:
           # Get AWS Account ID
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
+          # Check QuickSight data source status first
+          echo "🔍 Checking QuickSight data source status..."
+          DATA_SOURCE_STATUS=$(aws quicksight describe-data-source \
+            --aws-account-id $AWS_ACCOUNT_ID \
+            --data-source-id bedrock-analytics-dev-athena-source \
+            --query 'DataSource.Status' \
+            --output text 2>/dev/null || echo "NOT_FOUND")
+
+          echo "Data source status: $DATA_SOURCE_STATUS"
+
+          # Handle based on status
+          if [ "$DATA_SOURCE_STATUS" = "CREATION_FAILED" ]; then
+            echo "❌ Found failed data source, deleting..."
+            aws quicksight delete-data-source \
+              --aws-account-id $AWS_ACCOUNT_ID \
+              --data-source-id bedrock-analytics-dev-athena-source || echo "Delete failed"
+            echo "⏳ Waiting for deletion to propagate..."
+            sleep 30
+
+          elif [ "$DATA_SOURCE_STATUS" = "CREATION_SUCCESSFUL" ]; then
+            echo "✅ Data source is healthy, importing..."
+            terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "Import failed"
+          fi
+          
           # Function to safely import resources
           import_resource() {
           local resource_address=$1
