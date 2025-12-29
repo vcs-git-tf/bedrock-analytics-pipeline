@@ -66,10 +66,10 @@ variable "quicksight_user" {
   type        = string
   default     = ""
 
-  validation {
-    condition     = can(regex("^[a-zA-Z0-9@._-]*$", var.quicksight_user))
-    error_message = "QuickSight user must contain only alphanumeric characters, @, ., _, or - symbols."
-  }
+  # validation {
+  #   condition     = can(regex("^[a-zA-Z0-9@._-]*$", var.quicksight_user))
+  #   error_message = "QuickSight user must contain only alphanumeric characters, @, ., _, or - symbols."
+  # }
 }
 
 variable "dataset_import_mode" {
