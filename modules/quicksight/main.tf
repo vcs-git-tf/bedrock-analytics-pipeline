@@ -115,6 +115,7 @@ resource "aws_iam_role_policy_attachment" "quicksight_service_policy_attachment"
 }
 
 # QuickSight Data Source
+# Sometimes QuickSight works better without explicit credential configuration
 resource "aws_quicksight_data_source" "athena_source" {
   data_source_id = "${local.name_prefix}-athena-source"
   name           = "${local.name_prefix}-athena-source"
