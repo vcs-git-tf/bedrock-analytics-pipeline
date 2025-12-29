@@ -62,14 +62,13 @@ variable "athena_table_name" {
 
 # Optional variables with defaults
 variable "quicksight_user" {
-  description = "QuickSight user name for permissions (optional)"
+  description = "QuickSight user name for permissions (required for resource permissions)"
   type        = string
-  default     = ""
-
-  # validation {
-  #   condition     = can(regex("^[a-zA-Z0-9@._-]*$", var.quicksight_user))
-  #   error_message = "QuickSight user must contain only alphanumeric characters, @, ., _, or - symbols."
-  # }
+  
+  validation {
+    condition     = var.quicksight_user != ""
+    error_message = "QuickSight user must be specified for resource permissions."
+  }
 }
 
 variable "dataset_import_mode" {
