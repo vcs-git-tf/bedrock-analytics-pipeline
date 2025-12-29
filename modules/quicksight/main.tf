@@ -7,7 +7,7 @@ data "aws_region" "current" {}
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
   dataset_id  = "${local.name_prefix}-metrics-${substr(md5("${var.project_name}-${var.environment}"), 0, 8)}"
-  
+
   common_tags = merge(var.tags, {
     Project     = var.project_name
     Environment = var.environment
@@ -17,7 +17,7 @@ locals {
 
   # CORRECTED: QuickSight user ARN construction
   quicksight_user_arn = var.quicksight_user != "" ? "arn:${data.aws_partition.current.partition}:quicksight:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:user/default/${var.quicksight_user}" : null
-  
+
   # Helper collections for dynamic blocks (only include user, not service role)
   user_permissions_list = local.quicksight_user_arn != null ? [local.quicksight_user_arn] : []
   spice_refresh_list    = var.dataset_import_mode == "SPICE" ? ["enabled"] : []
@@ -225,7 +225,7 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
   dynamic "permissions" {
     for_each = local.user_permissions_list
     content {
-      principal = permissions.value  # This is a QuickSight user ARN
+      principal = permissions.value # This is a QuickSight user ARN
       actions = [
         "quicksight:DescribeDataSet",
         "quicksight:DescribeDataSetPermissions",
@@ -259,38 +259,38 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
   tags = local.common_tags
 }
 
-  # # Service role permissions (always present)
-  # permissions {
-  #   principal = aws_iam_role.quicksight_service_role.arn
-  #   actions = [
-  #      "quicksight:DescribeDataSet",
-  #     "quicksight:DescribeDataSetPermissions",
-  #     "quicksight:PassDataSet",
-  #     "quicksight:UpdateDataSet",
-  #      "quicksight:DeleteDataSet",
-  #     "quicksight:CreateIngestion",
-  #     "quicksight:CancelIngestion",
-  #     "quicksight:ListIngestions",
-  #     "quicksight:DescribeIngestion"
-  #     ]
-  #   }
+# # Service role permissions (always present)
+# permissions {
+#   principal = aws_iam_role.quicksight_service_role.arn
+#   actions = [
+#      "quicksight:DescribeDataSet",
+#     "quicksight:DescribeDataSetPermissions",
+#     "quicksight:PassDataSet",
+#     "quicksight:UpdateDataSet",
+#      "quicksight:DeleteDataSet",
+#     "quicksight:CreateIngestion",
+#     "quicksight:CancelIngestion",
+#     "quicksight:ListIngestions",
+#     "quicksight:DescribeIngestion"
+#     ]
+#   }
 
-  # # User permissions (conditional) - CORRECTED
-  # permissions {
-  #   principal = permissions.value
-  #   actions = [
-  #     "quicksight:DescribeDataSet",
-  #     "quicksight:DescribeDataSetPermissions",
-  #     "quicksight:PassDataSet",
-  #     "quicksight:UpdateDataSet",
-  #     "quicksight:DeleteDataSet"
-  #     ]
-  #   }
+# # User permissions (conditional) - CORRECTED
+# permissions {
+#   principal = permissions.value
+#   actions = [
+#     "quicksight:DescribeDataSet",
+#     "quicksight:DescribeDataSetPermissions",
+#     "quicksight:PassDataSet",
+#     "quicksight:UpdateDataSet",
+#     "quicksight:DeleteDataSet"
+#     ]
+#   }
 
 # QuickSight Analysis with corrected permissions
 resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
   count = var.create_analysis ? 1 : 0
-  
+
   analysis_id    = "${local.name_prefix}-analysis"
   name           = "${local.name_prefix} Bedrock Metrics Analysis"
   aws_account_id = var.aws_account_id
@@ -380,44 +380,44 @@ resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
   tags = local.common_tags
 }
 
-  # # Service role permissions (always present)
-  # dynamic "permissions" {
-  #   for_each = local.user_permissions_list
-  #   content {
-  #     principal = aws_iam_role.quicksight_service_role.arn
-  #     actions = [
-  #       "quicksight:RestoreAnalysis",
-  #       "quicksight:UpdateAnalysisPermissions",
-  #       "quicksight:DeleteAnalysis",
-  #       "quicksight:QueryAnalysis",
-  #       "quicksight:DescribeAnalysisPermissions",
-  #       "quicksight:DescribeAnalysis",
-  #       "quicksight:UpdateAnalysis"
-  #     ]
-  #   }
-  # }
+# # Service role permissions (always present)
+# dynamic "permissions" {
+#   for_each = local.user_permissions_list
+#   content {
+#     principal = aws_iam_role.quicksight_service_role.arn
+#     actions = [
+#       "quicksight:RestoreAnalysis",
+#       "quicksight:UpdateAnalysisPermissions",
+#       "quicksight:DeleteAnalysis",
+#       "quicksight:QueryAnalysis",
+#       "quicksight:DescribeAnalysisPermissions",
+#       "quicksight:DescribeAnalysis",
+#       "quicksight:UpdateAnalysis"
+#     ]
+#   }
+# }
 
-  # # User permissions (conditional) - CORRECTED
-  # dynamic "permissions" {
-  #   for_each = local.user_permissions_list
-  #   content {
-  #     principal = permissions.value
-  #     actions = [
-  #       "quicksight:RestoreAnalysis",
-  #       "quicksight:UpdateAnalysisPermissions",
-  #       "quicksight:DeleteAnalysis",
-  #       "quicksight:QueryAnalysis",
-  #       "quicksight:DescribeAnalysisPermissions",
-  #       "quicksight:DescribeAnalysis",
-  #       "quicksight:UpdateAnalysis"
-  #     ]
-  #   }
-  # }
+# # User permissions (conditional) - CORRECTED
+# dynamic "permissions" {
+#   for_each = local.user_permissions_list
+#   content {
+#     principal = permissions.value
+#     actions = [
+#       "quicksight:RestoreAnalysis",
+#       "quicksight:UpdateAnalysisPermissions",
+#       "quicksight:DeleteAnalysis",
+#       "quicksight:QueryAnalysis",
+#       "quicksight:DescribeAnalysisPermissions",
+#       "quicksight:DescribeAnalysis",
+#       "quicksight:UpdateAnalysis"
+#     ]
+#   }
+# }
 
 # QuickSight Analysis with corrected permissions
 resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
   count = var.create_analysis ? 1 : 0
-  
+
   analysis_id    = "${local.name_prefix}-analysis"
   name           = "${local.name_prefix} Bedrock Metrics Analysis"
   aws_account_id = var.aws_account_id

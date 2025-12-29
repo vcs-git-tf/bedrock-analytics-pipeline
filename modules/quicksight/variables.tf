@@ -64,7 +64,7 @@ variable "athena_table_name" {
 variable "quicksight_user" {
   description = "QuickSight user name for permissions (required for resource permissions)"
   type        = string
-  
+
   validation {
     condition     = var.quicksight_user != ""
     error_message = "QuickSight user must be specified for resource permissions."
