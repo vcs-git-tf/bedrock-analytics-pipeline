@@ -4,7 +4,7 @@ terraform {
     bucket         = "bedrock-analytics-dev-terraform-state"
     key            = "terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "bedrock-analytics-dev-terraform-locks"
+    # dynamodb_table = "bedrock-analytics-dev-terraform-locks"
     encrypt        = true
   }
 }
