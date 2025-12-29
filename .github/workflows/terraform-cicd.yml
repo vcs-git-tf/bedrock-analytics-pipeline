@@ -62,6 +62,9 @@ jobs:
       - name: Terraform Validate Main
         run: terraform validate
 
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive  
+
   plan:
     name: Terraform Plan
     needs: validate
@@ -83,81 +86,6 @@ jobs:
 
       - name: Terraform Init
         run: terraform init
-
-      # Import to the correct module (athena, not quicksight)
-      #- name: Terraform Import
-      #  run: |
-      #    # Only import if the workgroup exists and isn't already in state
-      #    terraform import module.athena.aws_s3_bucket.athena_results bedrock-analytics-dev-metrics || echo "Resource already imported or doesn't exist"
-      #  continue-on-error: true
-
-      - name: Test Athena Configuration
-        run: |
-          echo "Testing Athena workgroup configuration..."
-          
-          # Test if workgroup exists and is configured
-          aws athena get-work-group --work-group bedrock-analytics-dev-workgroup
-          
-          # Test if bucket is accessible
-          aws s3 ls s3://bedrock-analytics-dev-metrics/
-          
-          # Try to create the query-results folder
-          aws s3api put-object --bucket bedrock-analytics-dev-metrics --key query-results/
-          
-          # Test a simple Athena query
-          QUERY_ID=$(aws athena start-query-execution \
-            --query-string "SELECT 1 as test_column" \
-            --work-group bedrock-analytics-dev-workgroup \
-            --query 'QueryExecutionId' --output text)
-          
-          echo "Query ID: $QUERY_ID"
-          
-          # Wait for query to complete
-          sleep 10
-          
-          # Check query status
-          aws athena get-query-execution --query-execution-id $QUERY_ID
-
-      - name: Import Existing IAM Resources
-        run: |
-          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-    
-          # Import QuickSight resources
-          terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "Data source import failed"
-          terraform import module.quicksight.aws_quicksight_data_set.bedrock_metrics_dataset $AWS_ACCOUNT_ID/bedrock-analytics-dev-metrics-* || echo "Dataset import failed"
-    
-          # Import IAM resources if they exist
-          terraform import module.quicksight.aws_iam_role.quicksight_data_source_role bedrock-analytics-dev-quicksight-datasource-role || echo "IAM role import failed"
-    
-        continue-on-error: true
-
-      - name: Import Existing Athena Resources
-        run: |
-          echo "Importing existing resources if they exist..."
-    
-          # Get AWS Account ID
-          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-    
-          # Import Athena resources
-          terraform import module.athena.aws_s3_bucket.athena_results bedrock-analytics-dev-metrics || echo "S3 bucket import failed or already imported"
-          terraform import module.athena.aws_athena_workgroup.bedrock_analytics bedrock-analytics-dev-workgroup || echo "Workgroup import failed or already imported"
-    
-          # Import QuickSight resources
-          terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "QuickSight data source import failed or already imported"
-    
-        continue-on-error: true
-
-      - name: Import Existing QuickSight Resources
-        run: |
-          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-    
-          # Import data source
-          terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "Data source import failed"
-    
-          # Import data source permissions (if they exist)
-          terraform import module.quicksight.aws_quicksight_data_source_permissions.athena_source_permissions $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "Data source permissions import failed"
-    
-        continue-on-error: true
       
       - name: Terraform Plan
         id: plan
@@ -234,8 +162,8 @@ jobs:
         with:
           name: terraform-plan
 
-      - name: Terraform Init
-        run: terraform init
+      # - name: Terraform Init
+      #   run: terraform init
 
       - name: Terraform Apply
         run: |
