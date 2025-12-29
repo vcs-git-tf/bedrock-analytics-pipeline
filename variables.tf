@@ -89,6 +89,7 @@ variable "deploy_quicksight" {
 variable "quicksight_service_role_arn" {
   description = "ARN of the QuickSight service role"
   type        = string
+  default     = ""
 }
 
 variable "quicksight_user" {
