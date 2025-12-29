@@ -64,7 +64,7 @@ variable "athena_table_name" {
 variable "quicksight_user" {
   description = "QuickSight user name for permissions (required for resource permissions)"
   type        = string
-  default     = "arn:aws:iam::194191748922:role/bedrock-analytics-dev-quicksight-service-role"
+  default     = "user/default/tfAdmin01"
 
   # validation {
   #   condition     = var.quicksight_user != ""
