@@ -250,8 +250,8 @@ jobs:
         with:
           name: terraform-plan
 
-      # - name: Terraform Init
-      #   run: terraform init
+      - name: Terraform Init
+        run: terraform init
 
       - name: Terraform Apply
         run: |
