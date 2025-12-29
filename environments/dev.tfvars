@@ -2,7 +2,7 @@ aws_region        = "us-east-1"
 project_name      = "bedrock-analytics"
 environment       = "dev"
 aws_account_id    = "194191748922"
-quicksight_user   = "users/default/194191748922"
+quicksight_user   = "arn:aws:quicksight:us-east-1:194191748922:user/default/tfAdmin01"
 deploy_quicksight = true
 
 tags = {
