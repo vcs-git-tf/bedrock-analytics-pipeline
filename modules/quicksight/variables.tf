@@ -166,3 +166,21 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "refresh_timezone" {
+  description = "Timezone for refresh schedule"
+  type        = string
+  default     = "UTC"
+}
+
+variable "create_dashboard" {
+  description = "Whether to create a QuickSight dashboard"
+  type        = bool
+  default     = true
+}
+
+variable "enable_refresh_schedule" {
+  description = "Whether to enable refresh schedule for SPICE datasets"
+  type        = bool
+  default     = false
+}
