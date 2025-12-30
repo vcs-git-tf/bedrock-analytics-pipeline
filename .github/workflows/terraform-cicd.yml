@@ -56,7 +56,19 @@ jobs:
             echo "✅ All Terraform files are properly formatted"
           fi
 
-      # FIX: Initialize with modules but without backend
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS Connection
+        run: |
+          echo "🔐 Verifying AWS connection..."
+          aws sts get-caller-identity
+          echo "✅ AWS connection verified"
+      
+          # FIX: Initialize with modules but without backend
       - name: Terraform Init (No Backend)
         run: |
           echo "🔧 Initializing Terraform without backend..."
