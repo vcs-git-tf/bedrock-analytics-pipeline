@@ -157,7 +157,7 @@ resource "aws_quicksight_data_source" "athena_source" {
 resource "aws_iam_service_linked_role" "quicksight" {
   aws_service_name = "quicksight.amazonaws.com"
   description      = "Service-linked role for Amazon QuickSight"
-  
+
   lifecycle {
     # Don't recreate if it already exists
     ignore_changes = all
