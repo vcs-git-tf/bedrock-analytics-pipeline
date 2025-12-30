@@ -163,6 +163,37 @@ jobs:
           echo "✅ AWS connection verified"
 
       # Add this step BEFORE terraform init
+      - name: Fix Athena S3 Bucket Configuration
+        run: |
+          ENV=${{ github.event.inputs.environment || env.ENV }}
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          
+          # Use AWS's recommended naming pattern for Athena results
+          ATHENA_BUCKET="aws-athena-query-results-${AWS_ACCOUNT_ID}-${AWS_REGION}"
+          
+          echo "🔧 Creating/verifying Athena results bucket: $ATHENA_BUCKET"
+          
+          # Create the bucket with AWS's expected naming
+          if ! aws s3api head-bucket --bucket "$ATHENA_BUCKET" 2>/dev/null; then
+            aws s3 mb "s3://$ATHENA_BUCKET" --region ${{ env.AWS_REGION }}
+          fi
+          
+          # Set bucket policy for Athena access
+          aws s3api put-bucket-policy --bucket "$ATHENA_BUCKET" --policy '{
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {"Service": "athena.amazonaws.com"},
+                "Action": ["s3:GetBucketLocation", "s3:GetObject", "s3:ListBucket", "s3:PutObject"],
+                "Resource": ["arn:aws:s3:::'$ATHENA_BUCKET'", "arn:aws:s3:::'$ATHENA_BUCKET'/*"]
+              }
+            ]
+          }'
+          
+          echo "✅ Athena bucket configured: $ATHENA_BUCKET"
+          echo "ATHENA_RESULTS_BUCKET=$ATHENA_BUCKET" >> $GITHUB_ENV
+      
       - name: Create Athena Results S3 Bucket
         run: |
           ENV=${{ github.event.inputs.environment || env.ENV }}

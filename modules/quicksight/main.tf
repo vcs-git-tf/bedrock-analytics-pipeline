@@ -27,29 +27,29 @@ locals {
 }
 
 # IAM role for QuickSight service operations
-resource "aws_iam_role" "quicksight_service_role" {
-  name = "${local.name_prefix}-quicksight-service-role"
+# resource "aws_iam_role" "quicksight_service_role" {
+#   name = "${local.name_prefix}-quicksight-service-role"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "quicksight.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-        Condition = {
-          StringEquals = {
-            "aws:SourceAccount" = var.aws_account_id
-          }
-        }
-      }
-    ]
-  })
+#   assume_role_policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Effect = "Allow"
+#         Principal = {
+#           Service = "quicksight.amazonaws.com"
+#         }
+#         Action = "sts:AssumeRole"
+#         Condition = {
+#           StringEquals = {
+#             "aws:SourceAccount" = var.aws_account_id
+#           }
+#         }
+#       }
+#     ]
+#   })
 
-  tags = local.common_tags
-}
+#   tags = local.common_tags
+# }
 
 # IAM policy for QuickSight to access Athena and S3
 resource "aws_iam_policy" "quicksight_service_policy" {
