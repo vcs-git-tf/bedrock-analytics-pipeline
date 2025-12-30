@@ -55,20 +55,8 @@ jobs:
           else
             echo "✅ All Terraform files are properly formatted"
           fi
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Verify AWS Connection
-        run: |
-          echo "🔐 Verifying AWS connection..."
-          aws sts get-caller-identity
-          echo "✅ AWS connection verified"
       
-          # FIX: Initialize with modules but without backend
+      # FIX: Initialize with modules but without backend
       - name: Terraform Init (No Backend)
         run: |
           echo "🔧 Initializing Terraform without backend..."
@@ -92,6 +80,54 @@ jobs:
       - name: Cleanup
         run: rm -f backend_override.tf
 
+  plan:
+    name: Terraform Plan
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS Connection
+        run: |
+          echo "🔐 Verifying AWS connection..."
+          aws sts get-caller-identity
+          echo "✅ AWS connection verified"
+
+      # FIX: Proper Terraform initialization with backend
+      - name: Terraform Init
+        run: |
+          echo "🔧 Initializing Terraform with backend..."
+          terraform init -input=false
+          echo "✅ Terraform initialized with backend and modules"
+
+      - name: Debug Environment
+        run: |
+          echo "🔍 Environment debugging..."
+          ENV=${{ github.event.inputs.environment || env.ENV }}
+          echo "Target environment: $ENV"
+          echo "Available environment files:"
+          find . -name "*.tfvars" -type f || echo "No .tfvars files found"
+        
+          # FIX: Proper bash syntax for file existence check
+          if [ -f "environments/$ENV.tfvars" ]; then
+            echo "📄 Contents of environments/$ENV.tfvars:"
+            cat environments/$ENV.tfvars
+          else
+            echo "⚠️ No tfvars file found for environment: $ENV"
+          fi
+          
       - name: Import Existing Resources with Validation
         run: |
           echo "📥 Starting resource import process..."
@@ -160,54 +196,6 @@ jobs:
 
           echo "🎉 Import process completed successfully"
         continue-on-error: true
-
-  plan:
-    name: Terraform Plan
-    needs: validate
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Verify AWS Connection
-        run: |
-          echo "🔐 Verifying AWS connection..."
-          aws sts get-caller-identity
-          echo "✅ AWS connection verified"
-
-      # FIX: Proper Terraform initialization with backend
-      - name: Terraform Init
-        run: |
-          echo "🔧 Initializing Terraform with backend..."
-          terraform init -input=false
-          echo "✅ Terraform initialized with backend and modules"
-
-      - name: Debug Environment
-        run: |
-          echo "🔍 Environment debugging..."
-          ENV=${{ github.event.inputs.environment || env.ENV }}
-          echo "Target environment: $ENV"
-          echo "Available environment files:"
-          find . -name "*.tfvars" -type f || echo "No .tfvars files found"
-        
-          # FIX: Proper bash syntax for file existence check
-          if [ -f "environments/$ENV.tfvars" ]; then
-            echo "📄 Contents of environments/$ENV.tfvars:"
-            cat environments/$ENV.tfvars
-          else
-            echo "⚠️ No tfvars file found for environment: $ENV"
-          fi    
       
       - name: Terraform Plan
         id: plan
