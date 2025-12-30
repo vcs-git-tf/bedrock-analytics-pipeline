@@ -128,73 +128,61 @@ jobs:
             echo "⚠️ No tfvars file found for environment: $ENV"
           fi
           
-      - name: Import Existing Resources with Validation
+      - name: Force Clean Import of QuickSight Resources
         run: |
-          echo "📥 Starting resource import process..."
+          echo "🧹 Force cleaning and reimporting QuickSight resources..."
           
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           ENV=${{ github.event.inputs.environment || env.ENV }}
+          DATA_SOURCE_ID="bedrock-analytics-${ENV}-athena-source"
           
-          # Enhanced import function with validation
-          import_with_validation() {
-            local resource_address=$1
-            local resource_id=$2
-            local resource_name=$3
-            local aws_check_command=$4
-            
-            echo "🔍 Checking if $resource_name exists in AWS..."
-            
-            # Check if resource exists in AWS first
-            if eval "$aws_check_command" >/dev/null 2>&1; then
-              echo "✅ $resource_name found in AWS"
-              
-              # Check if already in Terraform state
-              if terraform state show "$resource_address" >/dev/null 2>&1; then
-                echo "ℹ️  $resource_name already in Terraform state"
-              else
-                echo "🔄 Importing $resource_name into Terraform state..."
-                if terraform import "$resource_address" "$resource_id"; then
-                  echo "✅ Successfully imported $resource_name"
-                else
-                  echo "❌ Failed to import $resource_name"
-                  return 1
-                fi
-              fi
-            else
-              echo "⚠️  $resource_name not found in AWS - will be created"
-            fi
-            echo ""
-          }
-
-          # Import QuickSight Data Source
-          import_with_validation \
-            "module.quicksight.aws_quicksight_data_source.athena_source" \
-            "$AWS_ACCOUNT_ID/bedrock-analytics-${ENV}-athena-source" \
-            "QuickSight Data Source" \
-            "aws quicksight describe-data-source --aws-account-id $AWS_ACCOUNT_ID --data-source-id bedrock-analytics-${ENV}-athena-source"
-
-          # Import QuickSight Dataset (if exists)
-          import_with_validation \
-            "module.quicksight.aws_quicksight_data_set.bedrock_metrics_dataset" \
-            "$AWS_ACCOUNT_ID/bedrock-analytics-${ENV}-metrics-4cdece83" \
-            "QuickSight Dataset" \
-            "aws quicksight describe-data-set --aws-account-id $AWS_ACCOUNT_ID --data-set-id bedrock-analytics-${ENV}-metrics-4cdece83"
-
-          # Import S3 Bucket
-          import_with_validation \
-            "module.athena.aws_s3_bucket.athena_results" \
-            "bedrock-analytics-${ENV}-metrics" \
-            "S3 Bucket" \
-            "aws s3api head-bucket --bucket bedrock-analytics-${ENV}-metrics"
-
-          # Import Athena Workgroup
-          import_with_validation \
-            "module.athena.aws_athena_workgroup.bedrock_analytics" \
-            "bedrock-analytics-${ENV}-workgroup" \
-            "Athena Workgroup" \
-            "aws athena get-work-group --work-group bedrock-analytics-${ENV}-workgroup"
-
-          echo "🎉 Import process completed successfully"
+          # Step 1: Remove from Terraform state if it exists
+          echo "🗑️ Removing resource from Terraform state..."
+          terraform state rm "module.quicksight.aws_quicksight_data_source.athena_source" 2>/dev/null || echo "Resource not in state"
+          
+          # Step 2: Check if resource exists in AWS and get its current state
+          echo "🔍 Checking resource status in AWS..."
+          DATA_SOURCE_STATUS=$(aws quicksight describe-data-source \
+            --aws-account-id $AWS_ACCOUNT_ID \
+            --data-source-id $DATA_SOURCE_ID \
+            --query 'DataSource.Status' \
+            --output text 2>/dev/null || echo "NOT_FOUND")
+          
+          echo "Current data source status: $DATA_SOURCE_STATUS"
+          
+          # Step 3: Handle based on status
+          case "$DATA_SOURCE_STATUS" in
+            "CREATION_FAILED"|"UPDATE_FAILED")
+              echo "❌ Found failed data source, deleting from AWS..."
+              aws quicksight delete-data-source \
+                --aws-account-id $AWS_ACCOUNT_ID \
+                --data-source-id $DATA_SOURCE_ID || echo "Delete failed"
+              echo "⏳ Waiting for deletion to complete..."
+              sleep 60
+              ;;
+            "CREATION_SUCCESSFUL"|"UPDATE_SUCCESSFUL")
+              echo "✅ Data source is healthy, importing into Terraform..."
+              terraform import "module.quicksight.aws_quicksight_data_source.athena_source" "$AWS_ACCOUNT_ID/$DATA_SOURCE_ID" || {
+                echo "❌ Import failed, deleting and recreating..."
+                aws quicksight delete-data-source \
+                  --aws-account-id $AWS_ACCOUNT_ID \
+                  --data-source-id $DATA_SOURCE_ID
+                sleep 60
+              }
+              ;;
+            "NOT_FOUND")
+              echo "ℹ️ Data source not found in AWS - will be created fresh"
+              ;;
+            *)
+              echo "⚠️ Unknown status: $DATA_SOURCE_STATUS - attempting to delete and recreate"
+              aws quicksight delete-data-source \
+                --aws-account-id $AWS_ACCOUNT_ID \
+                --data-source-id $DATA_SOURCE_ID 2>/dev/null || echo "Delete failed"
+              sleep 60
+              ;;
+          esac
+          
+          echo "✅ Clean import process completed"
         continue-on-error: true
       
       - name: Terraform Plan
