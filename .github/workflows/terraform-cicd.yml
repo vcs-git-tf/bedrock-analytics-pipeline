@@ -307,7 +307,7 @@ jobs:
           # Import QuickSight resources
           import_resource \
             "module.quicksight.aws_quicksight_data_source.athena_source" \
-            "$AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source" \
+            "$AWS_ACCOUNT_ID/bedrock_analytics" \
             "QuickSight Data Source"
           
           import_resource \
