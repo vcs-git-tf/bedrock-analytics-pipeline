@@ -3,11 +3,11 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 # Ensure S3 bucket exists with correct configuration
-resource "aws_s3_bucket" "athena_results" {
-  bucket = "${var.project_name}-${var.environment}-metrics"
+# resource "aws_s3_bucket" "athena_results" {
+#   bucket = "${var.project_name}-${var.environment}-metrics"
 
-  tags = var.tags
-}
+#   tags = var.tags
+# }
 
 # Configure bucket versioning
 resource "aws_s3_bucket_versioning" "athena_results" {
