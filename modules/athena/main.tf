@@ -118,11 +118,18 @@ resource "aws_iam_role" "quicksight_athena_role" {
 # Comprehensive IAM policy for QuickSight-Athena integration
 resource "aws_iam_policy" "quicksight_athena_policy" {
   name        = "${var.project_name}-${var.environment}-quicksight-athena-policy"
-  description = "Comprehensive policy for QuickSight to access Athena, S3, and Glue"
+  description = "Comprehensive policy for QuickSight to access Quicksight, Athena, S3, and Glue"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "quicksight:*"
+        ]
+        Resource = "*"
+      },
       {
         Effect = "Allow"
         Action = [
