@@ -118,11 +118,11 @@ resource "aws_iam_policy" "quicksight_service_policy" {
   tags = local.common_tags
 }
 
-# Attach policy to role
-resource "aws_iam_role_policy_attachment" "quicksight_service_policy_attachment" {
-  role       = aws_iam_role.quicksight_service_role.name
-  policy_arn = aws_iam_policy.quicksight_service_policy.arn
-}
+# # Attach policy to role
+# resource "aws_iam_role_policy_attachment" "quicksight_service_policy_attachment" {
+#   role       = aws_iam_role.quicksight_service_role.name
+#   policy_arn = aws_iam_policy.quicksight_service_policy.arn
+# }
 
 # Get existing QuickSight user (assumes manual setup is done)
 data "aws_quicksight_user" "admin" {
