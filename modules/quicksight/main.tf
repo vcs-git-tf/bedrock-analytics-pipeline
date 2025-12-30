@@ -94,7 +94,10 @@ resource "aws_iam_policy" "quicksight_service_policy" {
         ]
         Resource = [
           var.athena_results_bucket_arn,
-          "${var.athena_results_bucket_arn}/*"
+          "${var.athena_results_bucket_arn}/*",
+          "arn:aws:s3:::${var.athena_results_bucket_arn}/*",
+          "arn:aws:s3:::aws-athena-query-results-*",
+          "arn:aws:s3:::aws-athena-query-results-*/*"
         ]
       },
       {
