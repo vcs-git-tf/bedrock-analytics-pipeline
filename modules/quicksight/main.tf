@@ -232,20 +232,20 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
     }
   }
 
-  # # Only add user permissions if QuickSight user is specified
-  # dynamic "permissions" {
-  #   for_each = local.user_permissions_list
-  #   content {
-  #     principal = permissions.value
-  #     actions = [
-  #       "quicksight:DescribeDataSet",
-  #       "quicksight:DescribeDataSetPermissions",
-  #       "quicksight:PassDataSet",
-  #       "quicksight:UpdateDataSet",
-  #       "quicksight:DeleteDataSet"
-  #     ]
-  #   }
-  # }
+  # Only add user permissions if QuickSight user is specified
+  dynamic "permissions" {
+    for_each = local.user_permissions_list
+    content {
+      principal = permissions.value
+      actions = [
+        "quicksight:DescribeDataSet",
+        "quicksight:DescribeDataSetPermissions",
+        "quicksight:PassDataSet",
+        "quicksight:UpdateDataSet",
+        "quicksight:DeleteDataSet"
+      ]
+    }
+  }
 
   # Refresh properties for SPICE datasets
   dynamic "refresh_properties" {
