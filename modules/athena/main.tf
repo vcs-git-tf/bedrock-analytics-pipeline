@@ -2,17 +2,33 @@
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
-# S3 bucket for Athena query results
+# Ensure S3 bucket exists with correct configuration
 resource "aws_s3_bucket" "athena_results" {
   bucket = "${var.project_name}-${var.environment}-metrics"
 
-  tags = merge(var.tags, {
-    Component = "athena"
-    Purpose   = "query-results"
-  })
+  tags = var.tags
 }
 
-# S3 bucket public access block
+# Configure bucket versioning
+resource "aws_s3_bucket_versioning" "athena_results" {
+  bucket = aws_s3_bucket.athena_results.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Configure server-side encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
+  bucket = aws_s3_bucket.athena_results.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Block public access
 resource "aws_s3_bucket_public_access_block" "athena_results" {
   bucket = aws_s3_bucket.athena_results.id
 
@@ -22,16 +38,54 @@ resource "aws_s3_bucket_public_access_block" "athena_results" {
   restrict_public_buckets = true
 }
 
-# S3 bucket server-side encryption
-resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
+# Bucket policy for QuickSight and Athena access
+resource "aws_s3_bucket_policy" "athena_results" {
   bucket = aws_s3_bucket.athena_results.id
 
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-    bucket_key_enabled = true
-  }
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowAthenaAccess"
+        Effect = "Allow"
+        Principal = {
+          Service = "athena.amazonaws.com"
+        }
+        Action = [
+          "s3:GetBucketLocation",
+          "s3:GetObject",
+          "s3:ListBucket",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = [
+          aws_s3_bucket.athena_results.arn,
+          "${aws_s3_bucket.athena_results.arn}/*"
+        ]
+      },
+      {
+        Sid    = "AllowQuickSightAccess"
+        Effect = "Allow"
+        Principal = {
+          Service = "quicksight.amazonaws.com"
+        }
+        Action = [
+          "s3:GetBucketLocation",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.athena_results.arn,
+          "${aws_s3_bucket.athena_results.arn}/*"
+        ]
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      }
+    ]
+  })
 }
 
 # IAM role for QuickSight to access Athena and S3
@@ -189,21 +243,14 @@ resource "aws_athena_workgroup" "bedrock_analytics" {
         encryption_option = "SSE_S3"
       }
     }
-
-    engine_version {
-      selected_engine_version = "Athena engine version 3"
-    }
   }
+
+  tags = var.tags
 
   depends_on = [
     aws_s3_bucket.athena_results,
-    aws_s3_bucket_policy.athena_results_policy,
-    aws_iam_role.quicksight_athena_role
+    aws_s3_bucket_policy.athena_results
   ]
-
-  tags = merge(var.tags, {
-    Component = "athena"
-  })
 }
 
 # Athena database

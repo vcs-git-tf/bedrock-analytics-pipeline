@@ -44,6 +44,8 @@ module "athena" {
   s3_bucket_arn  = module.storage.metrics_bucket_arn
   metrics_prefix = var.metrics_prefix
   tags           = local.tags
+
+  depends_on = [module.storage]
 }
 
 module "quicksight" {
@@ -65,5 +67,8 @@ module "quicksight" {
   enable_refresh_schedule   = var.enable_quicksight_refresh
   tags                      = local.tags
 
-  depends_on = [module.athena]
+  depends_on = [
+    module.athena,
+    module.storage
+  ]
 }
