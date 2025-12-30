@@ -2,12 +2,12 @@ name: Terraform CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: main
     paths:
       - '**.tf'
       - '.github/workflows/terraform-cicd.yml'
   pull_request:
-    branches: [main]
+    branches: main
     paths:
       - '**.tf'
   workflow_dispatch:
@@ -56,14 +56,29 @@ jobs:
             echo "✅ All Terraform files are properly formatted"
           fi
 
-      - name: Terraform Init Main
-        run: terraform init -backend=false
+      # FIX: Initialize with modules but without backend
+      - name: Terraform Init (No Backend)
+        run: |
+          echo "🔧 Initializing Terraform without backend..."
+          # Create a temporary backend configuration that doesn't require AWS credentials
+          cat > backend_override.tf << EOF
+          terraform {
+            backend "local" {}
+          }
+          EOF
+          
+          terraform init -input=false
+          echo "✅ Terraform initialized with modules"
 
-      - name: Terraform Validate Main
-        run: terraform validate
+      - name: Terraform Validate
+        run: |
+          echo "🔍 Validating Terraform configuration..."
+          terraform validate
+          echo "✅ Terraform validation successful"
 
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive  
+      # Clean up temporary backend file
+      - name: Cleanup
+        run: rm -f backend_override.tf
 
   plan:
     name: Terraform Plan
@@ -90,25 +105,12 @@ jobs:
           aws sts get-caller-identity
           echo "✅ AWS connection verified"
 
+      # FIX: Proper Terraform initialization with backend
       - name: Terraform Init
         run: |
-          echo "🔧 Initializing Terraform..."
-          terraform init
-          echo "✅ Terraform initialized"   
-
-      # - name: Import Existing Resources
-      #   run: |
-      #     echo "📥 Importing existing resources..."
-        
-      #     AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-        
-      #     # Import with timeout and error handling
-      #     timeout 300 terraform import module.athena.aws_s3_bucket.athena_results bedrock-analytics-dev-metrics || echo "S3 bucket import failed or already imported"
-      #     timeout 300 terraform import module.athena.aws_athena_workgroup.bedrock_analytics bedrock-analytics-dev-workgroup || echo "Workgroup import failed or already imported"
-      #     timeout 300 terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "Data source import failed or already imported"
-        
-      #     echo "✅ Import phase completed"
-      #   continue-on-error: true
+          echo "🔧 Initializing Terraform with backend..."
+          terraform init -input=false
+          echo "✅ Terraform initialized with backend and modules"
 
       - name: Debug Environment
         run: |
@@ -118,9 +120,12 @@ jobs:
           echo "Available environment files:"
           find . -name "*.tfvars" -type f || echo "No .tfvars files found"
         
+          # FIX: Proper bash syntax for file existence check
           if [ -f "environments/$ENV.tfvars" ]; then
             echo "📄 Contents of environments/$ENV.tfvars:"
             cat environments/$ENV.tfvars
+          else
+            echo "⚠️ No tfvars file found for environment: $ENV"
           fi    
       
       - name: Terraform Plan
@@ -134,7 +139,7 @@ jobs:
           # Add debug output
           export TF_LOG=INFO
 
-          # Check if tfvars file exists (FIXED)
+          # FIX: Proper bash syntax for file existence check
           if [ -f "environments/$ENV.tfvars" ]; then
             echo "✅ Using tfvars file: environments/$ENV.tfvars"
 
@@ -146,7 +151,7 @@ jobs:
               -lock-timeout=5m \
               -parallelism=10
           else
-            echo "⚠️  Using default values (no tfvars file)"
+            echo "⚠️ Using default values (no tfvars file)"
 
             terraform plan \
               -input=false \
@@ -229,8 +234,8 @@ jobs:
     needs: plan
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    environment: \${{ github.event.inputs.environment || '${ENV}' }}
-    timeout-minutes: 30  # Add overall timeout
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -252,61 +257,10 @@ jobs:
           name: terraform-plan
 
       - name: Terraform Init
-        run: terraform init -input=false
-
-      # - name: Import Existing Athena Resources
-      #   run: |
-      #     echo "📥 Importing existing resources..."
-    
-      #     # Get AWS Account ID
-      #     AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
-      #     # Check QuickSight data source status first
-      #     echo "🔍 Checking QuickSight data source status..."
-      #     DATA_SOURCE_STATUS=$(aws quicksight describe-data-source \
-      #       --aws-account-id $AWS_ACCOUNT_ID \
-      #       --data-source-id bedrock-analytics-dev-athena-source \
-      #       --query 'DataSource.Status' \
-      #       --output text 2>/dev/null || echo "NOT_FOUND")
-
-      #     echo "Data source status: $DATA_SOURCE_STATUS"
-
-      #     # Handle based on status
-      #     if [ "$DATA_SOURCE_STATUS" = "CREATION_FAILED" ]; then
-      #       echo "❌ Found failed data source, deleting..."
-      #       aws quicksight delete-data-source \
-      #         --aws-account-id $AWS_ACCOUNT_ID \
-      #         --data-source-id bedrock-analytics-dev-athena-source || echo "Delete failed"
-      #       echo "⏳ Waiting for deletion to propagate..."
-      #       sleep 30
-
-      #     elif [ "$DATA_SOURCE_STATUS" = "CREATION_SUCCESSFUL" ]; then
-      #       echo "✅ Data source is healthy, importing..."
-      #       terraform import module.quicksight.aws_quicksight_data_source.athena_source $AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source || echo "Import failed"
-      #     fi
-          
-      #     # Function to safely import resources
-      #     import_resource() {
-      #     local resource_address=$1
-      #     local resource_id=$2
-      #     local resource_name=$3
-          
-      #     echo "🔄 Attempting to import $resource_name..."
-      #     if terraform import "$resource_address" "$resource_id" 2>/dev/null; then
-      #       echo "✅ Successfully imported $resource_name"
-      #     else
-      #       echo "⚠️  Import failed for $resource_name (may already be imported or not exist)"
-      #     fi
-      #     }
-
-      #     # Import all resources
-      #     import_resource "module.athena.aws_s3_bucket.athena_results" "bedrock-analytics-dev-metrics" "S3 Bucket"
-      #     import_resource "module.athena.aws_athena_workgroup.bedrock_analytics" "bedrock-analytics-dev-workgroup" "Athena Workgroup"
-      #     import_resource "module.quicksight.aws_quicksight_data_source.athena_source" "$AWS_ACCOUNT_ID/bedrock-analytics-dev-athena-source" "QuickSight Data Source"
-      #     import_resource "module.quicksight.aws_iam_role.quicksight_service_role" "bedrock-analytics-dev-quicksight-service-role" "QuickSight IAM Role"
-
-      #     echo "✅ Import phase completed"
-      #   continue-on-error: true
+        run: |
+          echo "🔧 Initializing Terraform..."
+          terraform init -input=false
+          echo "✅ Terraform initialized"
 
       - name: Terraform Apply
         timeout-minutes: 20
@@ -314,29 +268,29 @@ jobs:
           ENV=${{ github.event.inputs.environment || env.ENV }}
           echo "🚀 Applying Terraform for environment: $ENV"
 
-          # FIXED: Proper bash syntax
+          # FIX: Proper bash syntax for file existence check
           if [ -f "environments/$ENV.tfvars" ]; then
             echo "✅ Using tfvars file: environments/$ENV.tfvars"
             terraform apply -auto-approve -input=false -var-file=environments/$ENV.tfvars
           else
-            echo "⚠️  No tfvars file found, applying with default values"
+            echo "⚠️ No tfvars file found, applying with default values"
             terraform apply -auto-approve -input=false
           fi
-
+          
           echo "✅ Apply completed successfully"
 
       - name: Handle Apply Failures
         if: failure()
         run: |
           echo "❌ Apply failed, running diagnostics..."
-
+          
           # Show current state
           terraform state list || echo "No resources in state"
-
+          
           # Show last few log entries
           echo "Recent Terraform output:"
           tail -50 terraform.log 2>/dev/null || echo "No terraform.log found"
-
+          
           # Check AWS resources directly
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           aws quicksight describe-data-source --aws-account-id $AWS_ACCOUNT_ID --data-source-id bedrock-analytics-dev-athena-source 2>/dev/null || echo "QuickSight data source not found"
