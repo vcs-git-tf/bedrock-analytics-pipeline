@@ -130,7 +130,7 @@ resource "aws_quicksight_data_source" "athena_source" {
   data_source_id = "${local.name_prefix}-athena-source"
   name           = "${local.name_prefix}-athena-source"
   type           = "ATHENA"
-  aws_account_id = var.aws_account_id
+  # aws_account_id = var.aws_account_id
 
   parameters {
     athena {
@@ -144,12 +144,23 @@ resource "aws_quicksight_data_source" "athena_source" {
 
   tags = local.common_tags
 
-  depends_on = [
-    aws_iam_role_policy_attachment.quicksight_service_policy_attachment
-  ]
+  # depends_on = [
+  #   aws_iam_role_policy_attachment.quicksight_service_policy_attachment
+  # ]
 
   lifecycle {
     create_before_destroy = true
+  }
+}
+
+# Create the QuickSight service-linked role if it doesn't exist
+resource "aws_iam_service_linked_role" "quicksight" {
+  aws_service_name = "quicksight.amazonaws.com"
+  description      = "Service-linked role for Amazon QuickSight"
+  
+  lifecycle {
+    # Don't recreate if it already exists
+    ignore_changes = all
   }
 }
 

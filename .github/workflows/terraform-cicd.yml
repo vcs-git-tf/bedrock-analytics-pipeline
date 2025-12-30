@@ -76,6 +76,51 @@ jobs:
           terraform validate
           echo "✅ Terraform validation successful"
 
+      - name: Setup QuickSight Account
+        run: |
+          echo "🔧 Setting up QuickSight account..."
+          
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          
+          # Check if QuickSight is already set up
+          echo "🔍 Checking QuickSight account status..."
+          ACCOUNT_INFO=$(aws quicksight describe-account-settings \
+            --aws-account-id $AWS_ACCOUNT_ID 2>/dev/null || echo "NOT_SETUP")
+          
+          if [ "$ACCOUNT_INFO" = "NOT_SETUP" ]; then
+            echo "⚠️ QuickSight not set up, creating account subscription..."
+            
+            # Create QuickSight account subscription
+            aws quicksight create-account-subscription \
+              --aws-account-id $AWS_ACCOUNT_ID \
+              --account-name "Bedrock Analytics QuickSight" \
+              --authentication-method "IAM_AND_QUICKSIGHT" \
+              --edition "STANDARD" \
+              --notification-email "vcs.git@thefactor.org" || echo "Account creation failed"
+            
+            echo "⏳ Waiting for account setup to complete..."
+            sleep 120
+          else
+            echo "✅ QuickSight account already configured"
+          fi
+          
+          # Verify QuickSight user exists
+          echo "🔍 Checking QuickSight user..."
+          aws quicksight describe-user \
+            --aws-account-id $AWS_ACCOUNT_ID \
+            --namespace default \
+            --user-name Admin 2>/dev/null || {
+            echo "⚠️ Creating QuickSight admin user..."
+            aws quicksight register-user \
+              --aws-account-id $AWS_ACCOUNT_ID \
+              --namespace default \
+              --identity-type QUICKSIGHT \
+              --user-role ADMIN \
+              --user-name Admin \
+              --email "vcs.git@thefactor.org" || echo "User creation failed"
+          }
+        continue-on-error: true
+
       # Clean up temporary backend file
       - name: Cleanup
         run: rm -f backend_override.tf
