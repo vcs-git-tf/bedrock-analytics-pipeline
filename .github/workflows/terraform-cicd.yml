@@ -227,14 +227,7 @@ jobs:
             echo "Go to: https://quicksight.aws.amazon.com/"
             exit 1
           fi
-          
-          # Check service-linked role
-          if ! aws iam get-role --role-name aws-quicksight-service-role-v0 >/dev/null 2>&1; then
-            echo "🔧 Creating QuickSight service-linked role..."
-            aws iam create-service-linked-role --aws-service-name quicksight.amazonaws.com || echo "Role creation failed"
-            sleep 30
-          fi
-          
+        
           echo "✅ QuickSight prerequisites verified"
       
       # FIX: Proper Terraform initialization with backend
