@@ -127,7 +127,7 @@ resource "aws_iam_role_policy_attachment" "quicksight_service_policy_attachment"
 
 # Get existing QuickSight user (assumes manual setup is done)
 data "aws_quicksight_user" "admin" {
-  user_name      = var.quicksight_admin_user
+  user_name      = var.quicksight_user
   aws_account_id = data.aws_caller_identity.current.account_id
   namespace      = "default"
 }
@@ -143,27 +143,27 @@ resource "aws_quicksight_data_source" "athena_source" {
     }
   }
 
-  permission {
-    principal = data.aws_quicksight_user.admin.arn
-    actions = [
-      "quicksight:DescribeDataSource",
-      "quicksight:DescribeDataSourcePermissions",
-      "quicksight:PassDataSource",
-      "quicksight:UpdateDataSource",
-      "quicksight:DeleteDataSource",
-      "quicksight:UpdateDataSourcePermissions"
-    ]
-  }
+  # permission {
+  #   principal = data.aws_quicksight_user.admin.arn
+  #   actions = [
+  #     "quicksight:DescribeDataSource",
+  #     "quicksight:DescribeDataSourcePermissions",
+  #     "quicksight:PassDataSource",
+  #     "quicksight:UpdateDataSource",
+  #     "quicksight:DeleteDataSource",
+  #     "quicksight:UpdateDataSourcePermissions"
+  #   ]
+  # }
 
   tags = var.tags
 }
 
 # Add required variables
-variable "quicksight_admin_user" {
-  description = "QuickSight admin username"
-  type        = string
-  default     = "Admin"
-}
+# variable "quicksight_admin_user" {
+#   description = "QuickSight admin username"
+#   type        = string
+#   default     = "Admin"
+# }
 
 # QuickSight Dataset
 resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
