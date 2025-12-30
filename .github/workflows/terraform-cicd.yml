@@ -163,6 +163,26 @@ jobs:
           echo "✅ AWS connection verified"
 
       # Add this step BEFORE terraform init
+      - name: Create Athena Results S3 Bucket
+        run: |
+          ENV=${{ github.event.inputs.environment || env.ENV }}
+          BUCKET_NAME="bedrock-analytics-${ENV}-metrics"
+          
+          echo "🔧 Ensuring S3 bucket exists: $BUCKET_NAME"
+          
+          # Create bucket if it doesn't exist
+          if ! aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            aws s3 mb "s3://$BUCKET_NAME" --region ${{ env.AWS_REGION }}
+            echo "✅ Created bucket: $BUCKET_NAME"
+          else
+            echo "✅ Bucket already exists: $BUCKET_NAME"
+          fi
+          
+          # Test write access
+          echo "test" | aws s3 cp - "s3://$BUCKET_NAME/athena-test.txt"
+          aws s3 rm "s3://$BUCKET_NAME/athena-test.txt"
+          echo "✅ S3 bucket is accessible"
+
       - name: Verify QuickSight Setup
         run: |
           echo "🔍 Verifying QuickSight prerequisites..."
