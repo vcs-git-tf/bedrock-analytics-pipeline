@@ -309,6 +309,26 @@ jobs:
           
           echo "✅ Clean import process completed"
         continue-on-error: true
+
+      - name: Import Existing S3 Bucket
+        run: |
+          ENV=${{ github.event.inputs.environment || env.ENV }}
+          BUCKET_NAME="${{ env.PROJECT_NAME }}-${ENV}-metrics"
+          
+          echo "🔍 Checking if S3 bucket exists: $BUCKET_NAME"
+          
+          # Check if bucket exists in AWS
+          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            echo "✅ Bucket exists, importing into Terraform state..."
+            
+            # Import the bucket into Terraform state
+            terraform import "module.athena.aws_s3_bucket.athena_results" "$BUCKET_NAME" || \
+              echo "⚠️ Import failed (may already be imported)"
+            
+            echo "✅ Bucket import completed"
+          else
+            echo "ℹ️ Bucket doesn't exist - Terraform will create it"
+          fi
       
       - name: Terraform Plan
         id: plan
