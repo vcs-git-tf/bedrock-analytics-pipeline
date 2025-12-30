@@ -95,7 +95,7 @@ variable "quicksight_service_role_arn" {
 variable "quicksight_user" {
   description = "QuickSight user name for permissions"
   type        = string
-  default     = "tfadmin01"
+  default     = "Admin"
 }
 
 variable "create_quicksight_analysis" {

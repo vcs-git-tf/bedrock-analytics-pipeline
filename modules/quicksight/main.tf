@@ -162,7 +162,7 @@ resource "aws_quicksight_data_source" "athena_source" {
 variable "quicksight_admin_user" {
   description = "QuickSight admin username"
   type        = string
-  default     = "tfAdmin01"
+  default     = "Admin"
 }
 
 # QuickSight Dataset
