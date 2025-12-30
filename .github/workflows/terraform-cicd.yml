@@ -56,7 +56,19 @@ jobs:
             echo "✅ All Terraform files are properly formatted"
           fi
       
-      # FIX: Initialize with modules but without backend
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS Connection
+        run: |
+          echo "🔐 Verifying AWS connection..."
+          aws sts get-caller-identity
+          echo "✅ AWS connection verified"
+      
+          # FIX: Initialize with modules but without backend
       - name: Terraform Init (No Backend)
         run: |
           echo "🔧 Initializing Terraform without backend..."
@@ -150,6 +162,30 @@ jobs:
           aws sts get-caller-identity
           echo "✅ AWS connection verified"
 
+      # Add this step BEFORE terraform init
+      - name: Verify QuickSight Setup
+        run: |
+          echo "🔍 Verifying QuickSight prerequisites..."
+          
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          
+          # Check QuickSight account
+          if ! aws quicksight describe-account-settings --aws-account-id $AWS_ACCOUNT_ID >/dev/null 2>&1; then
+            echo "❌ QuickSight not set up in this account"
+            echo "Please set up QuickSight manually in AWS Console first"
+            echo "Go to: https://quicksight.aws.amazon.com/"
+            exit 1
+          fi
+          
+          # Check service-linked role
+          if ! aws iam get-role --role-name aws-quicksight-service-role-v0 >/dev/null 2>&1; then
+            echo "🔧 Creating QuickSight service-linked role..."
+            aws iam create-service-linked-role --aws-service-name quicksight.amazonaws.com || echo "Role creation failed"
+            sleep 30
+          fi
+          
+          echo "✅ QuickSight prerequisites verified"
+      
       # FIX: Proper Terraform initialization with backend
       - name: Terraform Init
         run: |
@@ -363,72 +399,6 @@ jobs:
           echo "🔧 Initializing Terraform..."
           terraform init -input=false
           echo "✅ Terraform initialized"
-
-      # In your GitHub Actions workflow - add this step before terraform plan/apply
-      # - name: Import Existing QuickSight Resources
-      #   run: |
-      #     echo "📥 Importing existing QuickSight resources..."
-          
-      #     # Get AWS Account ID
-      #     AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          
-      #     # Function to safely import resources
-      #     import_resource() {
-      #       local resource_address=$1
-      #       local resource_id=$2
-      #       local resource_name=$3
-            
-      #       echo "🔄 Attempting to import $resource_name..."
-      #       echo "  Resource: $resource_address"
-      #       echo "  ID: $resource_id"
-            
-      #       if terraform import "$resource_address" "$resource_id" 2>/dev/null; then
-      #         echo "✅ Successfully imported $resource_name"
-      #       else
-      #         echo "⚠️  Import failed for $resource_name (may already be imported or not exist)"
-      #         # Check if resource exists in AWS
-      #         case "$resource_name" in
-      #           *"QuickSight Data Source"*)
-      #             aws quicksight describe-data-source \
-      #               --aws-account-id $AWS_ACCOUNT_ID \
-      #               --data-source-id bedrock-analytics-dev-athena-source \
-      #               --query 'DataSource.Status' --output text 2>/dev/null || echo "Resource not found in AWS"
-      #             ;;
-      #           *"QuickSight Dataset"*)
-      #             aws quicksight describe-data-set \
-      #               --aws-account-id $AWS_ACCOUNT_ID \
-      #               --data-set-id bedrock-analytics-dev-metrics-4cdece83 \
-      #               --query 'DataSet.DataSetId' --output text 2>/dev/null || echo "Resource not found in AWS"
-      #             ;;
-      #         esac
-      #       fi
-      #       echo ""
-      #     }
-
-      #     # Import QuickSight resources
-      #     import_resource \
-      #       "module.quicksight.aws_quicksight_data_source.athena_source" \
-      #       "$AWS_ACCOUNT_ID/bedrock_analytics-dev-athena-source" \
-      #       "QuickSight Data Source"
-          
-      #     import_resource \
-      #       "module.quicksight.aws_quicksight_data_set.bedrock_metrics_dataset" \
-      #       "$AWS_ACCOUNT_ID/bedrock-analytics-dev-metrics-4cdece83" \
-      #       "QuickSight Dataset"
-          
-      #     # Import other resources as needed
-      #     import_resource \
-      #       "module.athena.aws_s3_bucket.athena_results" \
-      #       "bedrock-analytics-dev-metrics" \
-      #       "S3 Bucket"
-          
-      #     import_resource \
-      #       "module.athena.aws_athena_workgroup.bedrock_analytics" \
-      #       "bedrock-analytics-dev-workgroup" \
-      #       "Athena Workgroup"
-
-      #     echo "✅ Import phase completed"
-      #   continue-on-error: true
 
       - name: Terraform Apply
         timeout-minutes: 20

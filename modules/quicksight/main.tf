@@ -125,12 +125,17 @@ resource "aws_iam_role_policy_attachment" "quicksight_service_policy_attachment"
   policy_arn = aws_iam_policy.quicksight_service_policy.arn
 }
 
-# QuickSight Data Source
+# Get existing QuickSight user (assumes manual setup is done)
+data "aws_quicksight_user" "admin" {
+  user_name      = var.quicksight_admin_user
+  aws_account_id = data.aws_caller_identity.current.account_id
+  namespace      = "default"
+}
+
 resource "aws_quicksight_data_source" "athena_source" {
-  data_source_id = "${local.name_prefix}-athena-source"
-  name           = "${local.name_prefix}-athena-source"
+  data_source_id = "${var.project_name}-${var.environment}-athena-source"
+  name           = "${var.project_name} ${title(var.environment)} Athena Data Source"
   type           = "ATHENA"
-  # aws_account_id = var.aws_account_id
 
   parameters {
     athena {
@@ -138,30 +143,26 @@ resource "aws_quicksight_data_source" "athena_source" {
     }
   }
 
-  ssl_properties {
-    disable_ssl = false
+  permission {
+    principal = data.aws_quicksight_user.admin.arn
+    actions = [
+      "quicksight:DescribeDataSource",
+      "quicksight:DescribeDataSourcePermissions",
+      "quicksight:PassDataSource",
+      "quicksight:UpdateDataSource",
+      "quicksight:DeleteDataSource",
+      "quicksight:UpdateDataSourcePermissions"
+    ]
   }
 
-  tags = local.common_tags
-
-  # depends_on = [
-  #   aws_iam_role_policy_attachment.quicksight_service_policy_attachment
-  # ]
-
-  lifecycle {
-    create_before_destroy = true
-  }
+  tags = var.tags
 }
 
-# Create the QuickSight service-linked role if it doesn't exist
-resource "aws_iam_service_linked_role" "quicksight" {
-  aws_service_name = "quicksight.amazonaws.com"
-  description      = "Service-linked role for Amazon QuickSight"
-
-  lifecycle {
-    # Don't recreate if it already exists
-    ignore_changes = all
-  }
+# Add required variables
+variable "quicksight_admin_user" {
+  description = "QuickSight admin username"
+  type        = string
+  default     = "tfAdmin01"
 }
 
 # QuickSight Dataset
