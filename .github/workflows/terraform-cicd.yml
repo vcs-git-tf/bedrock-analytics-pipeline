@@ -93,7 +93,7 @@ jobs:
       - name: Terraform Init
         run: |
           echo "🔧 Initializing Terraform..."
-          terraform init -input=false
+          terraform init
           echo "✅ Terraform initialized"   
 
       # - name: Import Existing Resources
