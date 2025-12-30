@@ -80,6 +80,75 @@ jobs:
       - name: Cleanup
         run: rm -f backend_override.tf
 
+      - name: Import Existing Resources with Validation
+        run: |
+          echo "📥 Starting resource import process..."
+          
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ENV=${{ github.event.inputs.environment || env.ENV }}
+          
+          # Enhanced import function with validation
+          import_with_validation() {
+            local resource_address=$1
+            local resource_id=$2
+            local resource_name=$3
+            local aws_check_command=$4
+            
+            echo "🔍 Checking if $resource_name exists in AWS..."
+            
+            # Check if resource exists in AWS first
+            if eval "$aws_check_command" >/dev/null 2>&1; then
+              echo "✅ $resource_name found in AWS"
+              
+              # Check if already in Terraform state
+              if terraform state show "$resource_address" >/dev/null 2>&1; then
+                echo "ℹ️  $resource_name already in Terraform state"
+              else
+                echo "🔄 Importing $resource_name into Terraform state..."
+                if terraform import "$resource_address" "$resource_id"; then
+                  echo "✅ Successfully imported $resource_name"
+                else
+                  echo "❌ Failed to import $resource_name"
+                  return 1
+                fi
+              fi
+            else
+              echo "⚠️  $resource_name not found in AWS - will be created"
+            fi
+            echo ""
+          }
+
+          # Import QuickSight Data Source
+          import_with_validation \
+            "module.quicksight.aws_quicksight_data_source.athena_source" \
+            "$AWS_ACCOUNT_ID/bedrock-analytics-${ENV}-athena-source" \
+            "QuickSight Data Source" \
+            "aws quicksight describe-data-source --aws-account-id $AWS_ACCOUNT_ID --data-source-id bedrock-analytics-${ENV}-athena-source"
+
+          # Import QuickSight Dataset (if exists)
+          import_with_validation \
+            "module.quicksight.aws_quicksight_data_set.bedrock_metrics_dataset" \
+            "$AWS_ACCOUNT_ID/bedrock-analytics-${ENV}-metrics-4cdece83" \
+            "QuickSight Dataset" \
+            "aws quicksight describe-data-set --aws-account-id $AWS_ACCOUNT_ID --data-set-id bedrock-analytics-${ENV}-metrics-4cdece83"
+
+          # Import S3 Bucket
+          import_with_validation \
+            "module.athena.aws_s3_bucket.athena_results" \
+            "bedrock-analytics-${ENV}-metrics" \
+            "S3 Bucket" \
+            "aws s3api head-bucket --bucket bedrock-analytics-${ENV}-metrics"
+
+          # Import Athena Workgroup
+          import_with_validation \
+            "module.athena.aws_athena_workgroup.bedrock_analytics" \
+            "bedrock-analytics-${ENV}-workgroup" \
+            "Athena Workgroup" \
+            "aws athena get-work-group --work-group bedrock-analytics-${ENV}-workgroup"
+
+          echo "🎉 Import process completed successfully"
+        continue-on-error: true
+
   plan:
     name: Terraform Plan
     needs: validate
@@ -263,71 +332,70 @@ jobs:
           echo "✅ Terraform initialized"
 
       # In your GitHub Actions workflow - add this step before terraform plan/apply
-
-      - name: Import Existing QuickSight Resources
-        run: |
-          echo "📥 Importing existing QuickSight resources..."
+      # - name: Import Existing QuickSight Resources
+      #   run: |
+      #     echo "📥 Importing existing QuickSight resources..."
           
-          # Get AWS Account ID
-          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      #     # Get AWS Account ID
+      #     AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           
-          # Function to safely import resources
-          import_resource() {
-            local resource_address=$1
-            local resource_id=$2
-            local resource_name=$3
+      #     # Function to safely import resources
+      #     import_resource() {
+      #       local resource_address=$1
+      #       local resource_id=$2
+      #       local resource_name=$3
             
-            echo "🔄 Attempting to import $resource_name..."
-            echo "  Resource: $resource_address"
-            echo "  ID: $resource_id"
+      #       echo "🔄 Attempting to import $resource_name..."
+      #       echo "  Resource: $resource_address"
+      #       echo "  ID: $resource_id"
             
-            if terraform import "$resource_address" "$resource_id" 2>/dev/null; then
-              echo "✅ Successfully imported $resource_name"
-            else
-              echo "⚠️  Import failed for $resource_name (may already be imported or not exist)"
-              # Check if resource exists in AWS
-              case "$resource_name" in
-                *"QuickSight Data Source"*)
-                  aws quicksight describe-data-source \
-                    --aws-account-id $AWS_ACCOUNT_ID \
-                    --data-source-id bedrock-analytics-dev-athena-source \
-                    --query 'DataSource.Status' --output text 2>/dev/null || echo "Resource not found in AWS"
-                  ;;
-                *"QuickSight Dataset"*)
-                  aws quicksight describe-data-set \
-                    --aws-account-id $AWS_ACCOUNT_ID \
-                    --data-set-id bedrock-analytics-dev-metrics-4cdece83 \
-                    --query 'DataSet.DataSetId' --output text 2>/dev/null || echo "Resource not found in AWS"
-                  ;;
-              esac
-            fi
-            echo ""
-          }
+      #       if terraform import "$resource_address" "$resource_id" 2>/dev/null; then
+      #         echo "✅ Successfully imported $resource_name"
+      #       else
+      #         echo "⚠️  Import failed for $resource_name (may already be imported or not exist)"
+      #         # Check if resource exists in AWS
+      #         case "$resource_name" in
+      #           *"QuickSight Data Source"*)
+      #             aws quicksight describe-data-source \
+      #               --aws-account-id $AWS_ACCOUNT_ID \
+      #               --data-source-id bedrock-analytics-dev-athena-source \
+      #               --query 'DataSource.Status' --output text 2>/dev/null || echo "Resource not found in AWS"
+      #             ;;
+      #           *"QuickSight Dataset"*)
+      #             aws quicksight describe-data-set \
+      #               --aws-account-id $AWS_ACCOUNT_ID \
+      #               --data-set-id bedrock-analytics-dev-metrics-4cdece83 \
+      #               --query 'DataSet.DataSetId' --output text 2>/dev/null || echo "Resource not found in AWS"
+      #             ;;
+      #         esac
+      #       fi
+      #       echo ""
+      #     }
 
-          # Import QuickSight resources
-          import_resource \
-            "module.quicksight.aws_quicksight_data_source.athena_source" \
-            "$AWS_ACCOUNT_ID/bedrock_analytics" \
-            "QuickSight Data Source"
+      #     # Import QuickSight resources
+      #     import_resource \
+      #       "module.quicksight.aws_quicksight_data_source.athena_source" \
+      #       "$AWS_ACCOUNT_ID/bedrock_analytics-dev-athena-source" \
+      #       "QuickSight Data Source"
           
-          import_resource \
-            "module.quicksight.aws_quicksight_data_set.bedrock_metrics_dataset" \
-            "$AWS_ACCOUNT_ID/bedrock-analytics-dev-metrics-4cdece83" \
-            "QuickSight Dataset"
+      #     import_resource \
+      #       "module.quicksight.aws_quicksight_data_set.bedrock_metrics_dataset" \
+      #       "$AWS_ACCOUNT_ID/bedrock-analytics-dev-metrics-4cdece83" \
+      #       "QuickSight Dataset"
           
-          # Import other resources as needed
-          import_resource \
-            "module.athena.aws_s3_bucket.athena_results" \
-            "bedrock-analytics-dev-metrics" \
-            "S3 Bucket"
+      #     # Import other resources as needed
+      #     import_resource \
+      #       "module.athena.aws_s3_bucket.athena_results" \
+      #       "bedrock-analytics-dev-metrics" \
+      #       "S3 Bucket"
           
-          import_resource \
-            "module.athena.aws_athena_workgroup.bedrock_analytics" \
-            "bedrock-analytics-dev-workgroup" \
-            "Athena Workgroup"
+      #     import_resource \
+      #       "module.athena.aws_athena_workgroup.bedrock_analytics" \
+      #       "bedrock-analytics-dev-workgroup" \
+      #       "Athena Workgroup"
 
-          echo "✅ Import phase completed"
-        continue-on-error: true
+      #     echo "✅ Import phase completed"
+      #   continue-on-error: true
 
       - name: Terraform Apply
         timeout-minutes: 20
