@@ -1,3 +1,10 @@
+# Get bucket info directly from AWS
+data "aws_s3_bucket" "existing_bucket" {
+  bucket = "${var.project_name}-${var.environment}-metrics"
+
+  depends_on = [module.storage]
+}
+
 module "storage" {
   source = "./modules/storage"
 
@@ -5,6 +12,8 @@ module "storage" {
   environment      = var.environment
   tags             = var.tags
   s3_force_destroy = var.s3_force_destroy
+
+
 }
 
 # Wait for storage module to complete before using its outputs
@@ -50,8 +59,8 @@ module "athena" {
   database_name              = var.athena_database_name
   s3_bucket_id               = module.storage.metrics_bucket_id
   s3_bucket_arn              = module.storage.metrics_bucket_arn
-  athena_results_bucket_name = module.storage.metrics_bucket_name
-  athena_results_bucket_arn  = module.storage.metrics_bucket_arn # ADD THIS LINE
+  athena_results_bucket_name = data.aws_s3_bucket.existing_bucket.bucket # Use data source
+  athena_results_bucket_arn  = data.aws_s3_bucket.existing_bucket.arn    # Use data source
   metrics_prefix             = var.metrics_prefix
   tags                       = local.tags
 
