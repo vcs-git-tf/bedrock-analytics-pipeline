@@ -253,82 +253,92 @@ jobs:
             echo "⚠️ No tfvars file found for environment: $ENV"
           fi
           
-      - name: Force Clean Import of QuickSight Resources
-        run: |
-          echo "🧹 Force cleaning and reimporting QuickSight resources..."
+      # - name: Force Clean Import of QuickSight Resources
+      #   run: |
+      #     echo "🧹 Force cleaning and reimporting QuickSight resources..."
           
-          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          ENV=${{ github.event.inputs.environment || env.ENV }}
-          DATA_SOURCE_ID="bedrock-analytics-${ENV}-athena-source"
+      #     AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      #     ENV=${{ github.event.inputs.environment || env.ENV }}
+      #     DATA_SOURCE_ID="bedrock-analytics-${ENV}-athena-source"
           
-          # Step 1: Remove from Terraform state if it exists
-          echo "🗑️ Removing resource from Terraform state..."
-          terraform state rm "module.quicksight.aws_quicksight_data_source.athena_source" 2>/dev/null || echo "Resource not in state"
+      #     # Step 1: Remove from Terraform state if it exists
+      #     echo "🗑️ Removing resource from Terraform state..."
+      #     terraform state rm "module.quicksight.aws_quicksight_data_source.athena_source" 2>/dev/null || echo "Resource not in state"
           
-          # Step 2: Check if resource exists in AWS and get its current state
-          echo "🔍 Checking resource status in AWS..."
-          DATA_SOURCE_STATUS=$(aws quicksight describe-data-source \
-            --aws-account-id $AWS_ACCOUNT_ID \
-            --data-source-id $DATA_SOURCE_ID \
-            --query 'DataSource.Status' \
-            --output text 2>/dev/null || echo "NOT_FOUND")
+      #     # Step 2: Check if resource exists in AWS and get its current state
+      #     echo "🔍 Checking resource status in AWS..."
+      #     DATA_SOURCE_STATUS=$(aws quicksight describe-data-source \
+      #       --aws-account-id $AWS_ACCOUNT_ID \
+      #       --data-source-id $DATA_SOURCE_ID \
+      #       --query 'DataSource.Status' \
+      #       --output text 2>/dev/null || echo "NOT_FOUND")
           
-          echo "Current data source status: $DATA_SOURCE_STATUS"
+      #     echo "Current data source status: $DATA_SOURCE_STATUS"
           
-          # Step 3: Handle based on status
-          case "$DATA_SOURCE_STATUS" in
-            "CREATION_FAILED"|"UPDATE_FAILED")
-              echo "❌ Found failed data source, deleting from AWS..."
-              aws quicksight delete-data-source \
-                --aws-account-id $AWS_ACCOUNT_ID \
-                --data-source-id $DATA_SOURCE_ID || echo "Delete failed"
-              echo "⏳ Waiting for deletion to complete..."
-              sleep 60
-              ;;
-            "CREATION_SUCCESSFUL"|"UPDATE_SUCCESSFUL")
-              echo "✅ Data source is healthy, importing into Terraform..."
-              terraform import "module.quicksight.aws_quicksight_data_source.athena_source" "$AWS_ACCOUNT_ID/$DATA_SOURCE_ID" || {
-                echo "❌ Import failed, deleting and recreating..."
-                aws quicksight delete-data-source \
-                  --aws-account-id $AWS_ACCOUNT_ID \
-                  --data-source-id $DATA_SOURCE_ID
-                sleep 60
-              }
-              ;;
-            "NOT_FOUND")
-              echo "ℹ️ Data source not found in AWS - will be created fresh"
-              ;;
-            *)
-              echo "⚠️ Unknown status: $DATA_SOURCE_STATUS - attempting to delete and recreate"
-              aws quicksight delete-data-source \
-                --aws-account-id $AWS_ACCOUNT_ID \
-                --data-source-id $DATA_SOURCE_ID 2>/dev/null || echo "Delete failed"
-              sleep 60
-              ;;
-          esac
+      #     # Step 3: Handle based on status
+      #     case "$DATA_SOURCE_STATUS" in
+      #       "CREATION_FAILED"|"UPDATE_FAILED")
+      #         echo "❌ Found failed data source, deleting from AWS..."
+      #         aws quicksight delete-data-source \
+      #           --aws-account-id $AWS_ACCOUNT_ID \
+      #           --data-source-id $DATA_SOURCE_ID || echo "Delete failed"
+      #         echo "⏳ Waiting for deletion to complete..."
+      #         sleep 60
+      #         ;;
+      #       "CREATION_SUCCESSFUL"|"UPDATE_SUCCESSFUL")
+      #         echo "✅ Data source is healthy, importing into Terraform..."
+      #         terraform import "module.quicksight.aws_quicksight_data_source.athena_source" "$AWS_ACCOUNT_ID/$DATA_SOURCE_ID" || {
+      #           echo "❌ Import failed, deleting and recreating..."
+      #           aws quicksight delete-data-source \
+      #             --aws-account-id $AWS_ACCOUNT_ID \
+      #             --data-source-id $DATA_SOURCE_ID
+      #           sleep 60
+      #         }
+      #         ;;
+      #       "NOT_FOUND")
+      #         echo "ℹ️ Data source not found in AWS - will be created fresh"
+      #         ;;
+      #       *)
+      #         echo "⚠️ Unknown status: $DATA_SOURCE_STATUS - attempting to delete and recreate"
+      #         aws quicksight delete-data-source \
+      #           --aws-account-id $AWS_ACCOUNT_ID \
+      #           --data-source-id $DATA_SOURCE_ID 2>/dev/null || echo "Delete failed"
+      #         sleep 60
+      #         ;;
+      #     esac
           
-          echo "✅ Clean import process completed"
-        continue-on-error: true
+      #     echo "✅ Clean import process completed"
+      #   continue-on-error: true
 
-      - name: Import Existing S3 Bucket
-        run: |
-          ENV=${{ github.event.inputs.environment || env.ENV }}
-          BUCKET_NAME="${{ env.PROJECT_NAME }}-${ENV}-metrics"
+      # - name: Import Existing S3 Bucket
+      #   run: |
+      #     echo "📦 Importing existing S3 bucket into Terraform state..."
           
-          echo "🔍 Checking if S3 bucket exists: $BUCKET_NAME"
+      #     ENV=${{ github.event.inputs.environment || env.ENV }}
+      #     BUCKET_NAME="${{ env.PROJECT_NAME }}-${ENV}-metrics"
           
-          # Check if bucket exists in AWS
-          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
-            echo "✅ Bucket exists, importing into Terraform state..."
+      #     # Check if bucket exists in AWS
+      #     if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+      #       echo "✅ Bucket exists: $BUCKET_NAME"
             
-            # Import the bucket into Terraform state
-            terraform import "module.athena.aws_s3_bucket.athena_results" "$BUCKET_NAME" || \
-              echo "⚠️ Import failed (may already be imported)"
-            
-            echo "✅ Bucket import completed"
-          else
-            echo "ℹ️ Bucket doesn't exist - Terraform will create it"
-          fi
+      #       # Check if already in Terraform state
+      #       if terraform state show "module.athena.aws_s3_bucket.athena_results" >/dev/null 2>&1; then
+      #         echo "ℹ️ Bucket already in Terraform state"
+      #       else
+      #         echo "📥 Importing bucket into Terraform state..."
+      #         terraform import "module.athena.aws_s3_bucket.athena_results" "$BUCKET_NAME"
+              
+      #         if [ $? -eq 0 ]; then
+      #           echo "✅ Successfully imported S3 bucket"
+      #         else
+      #           echo "❌ Failed to import S3 bucket"
+      #           exit 1
+      #         fi
+      #       fi
+      #     else
+      #       echo "ℹ️ Bucket doesn't exist - Terraform will create it"
+      #     fi
+      #   continue-on-error: false
       
       - name: Terraform Plan
         id: plan
@@ -463,6 +473,36 @@ jobs:
           echo "🔧 Initializing Terraform..."
           terraform init -input=false
           echo "✅ Terraform initialized"
+
+      - name: Import Existing S3 Bucket
+        run: |
+          echo "📦 Importing existing S3 bucket into Terraform state..."
+          
+          ENV=${{ github.event.inputs.environment || env.ENV }}
+          BUCKET_NAME="${{ env.PROJECT_NAME }}-${ENV}-metrics"
+          
+          # Check if bucket exists in AWS
+          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            echo "✅ Bucket exists: $BUCKET_NAME"
+            
+            # Check if already in Terraform state
+            if terraform state show "module.athena.aws_s3_bucket.athena_results" >/dev/null 2>&1; then
+              echo "ℹ️ Bucket already in Terraform state"
+            else
+              echo "📥 Importing bucket into Terraform state..."
+              terraform import "module.athena.aws_s3_bucket.athena_results" "$BUCKET_NAME"
+              
+              if [ $? -eq 0 ]; then
+                echo "✅ Successfully imported S3 bucket"
+              else
+                echo "❌ Failed to import S3 bucket"
+                exit 1
+              fi
+            fi
+          else
+            echo "ℹ️ Bucket doesn't exist - Terraform will create it"
+          fi
+        continue-on-error: false
 
       - name: Terraform Apply
         timeout-minutes: 20
