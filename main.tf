@@ -52,7 +52,7 @@ module "athena" {
   # CRITICAL: Add explicit dependency
   depends_on = [
     module.storage,
-    module.storage.aws_s3_bucket.metrics_bucket # If this doesn't work, remove this line
+    # module.storage.aws_s3_bucket.metrics_bucket # If this doesn't work, remove this line
   ]
 }
 
