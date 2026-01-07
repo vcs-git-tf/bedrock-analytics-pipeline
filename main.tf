@@ -7,6 +7,12 @@ module "storage" {
   s3_force_destroy = var.s3_force_destroy
 }
 
+# Wait for storage module to complete before using its outputs
+resource "time_sleep" "wait_for_storage" {
+  depends_on      = [module.storage]
+  create_duration = "10s"
+}
+
 module "logging" {
   source = "./modules/logging"
 
@@ -52,6 +58,7 @@ module "athena" {
   # CRITICAL: Add explicit dependency
   depends_on = [
     module.storage,
+    time_sleep.wait_for_storage
     # module.storage.aws_s3_bucket.metrics_bucket # If this doesn't work, remove this line
   ]
 }
