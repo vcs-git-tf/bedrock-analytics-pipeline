@@ -26,7 +26,7 @@ output "quicksight_dashboard_url" {
 }
 
 # Refresh Schedule outputs
-output "quicksight_refresh_schedule_arn" {
-  description = "ARN of the QuickSight refresh schedule"
-  value       = var.dataset_import_mode == "SPICE" && var.enable_refresh_schedule ? aws_quicksight_refresh_schedule.bedrock_metrics_refresh[0].arn : null
-}
+# output "quicksight_refresh_schedule_arn" {
+#   description = "ARN of the QuickSight refresh schedule"
+#   value       = var.dataset_import_mode == "SPICE" && var.enable_refresh_schedule ? aws_quicksight_refresh_schedule.bedrock_metrics_refresh[0].arn : null
+# }
