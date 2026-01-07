@@ -33,3 +33,9 @@ variable "metrics_prefix" {
   type        = string
   default     = "bedrock-metrics/"
 }
+
+# modules/athena/variables.tf
+variable "athena_results_bucket_name" {
+  description = "Name of the S3 bucket for Athena query results"
+  type        = string
+}

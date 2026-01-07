@@ -3,8 +3,32 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 # Ensure S3 bucket exists with correct configuration
-resource "aws_s3_bucket" "athena_results" {
-  bucket = "${var.project_name}-${var.environment}-metrics"
+# resource "aws_s3_bucket" "athena_results" {
+#   bucket = "${var.project_name}-${var.environment}-metrics"
+
+#   tags = var.tags
+# }
+
+# modules/athena/main.tf - REMOVE the aws_s3_bucket resource
+
+# Reference the S3 bucket created in the storage module
+data "aws_s3_bucket" "athena_results" {
+  bucket = var.athena_results_bucket_name
+}
+
+# Use the data source in other resources
+resource "aws_athena_workgroup" "bedrock_analytics" {
+  name = "${var.project_name}-${var.environment}-workgroup"
+
+  configuration {
+    result_configuration {
+      output_location = "s3://${data.aws_s3_bucket.athena_results.bucket}/query-results/"
+
+      encryption_configuration {
+        encryption_option = "SSE_S3"
+      }
+    }
+  }
 
   tags = var.tags
 }

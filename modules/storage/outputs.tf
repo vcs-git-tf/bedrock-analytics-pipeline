@@ -7,3 +7,14 @@ output "metrics_bucket_arn" {
   description = "ARN of the S3 bucket for metrics data"
   value       = aws_s3_bucket.metrics_bucket.arn
 }
+
+# modules/storage/outputs.tf
+output "athena_results_bucket_name" {
+  description = "Name of the S3 bucket for Athena query results"
+  value       = aws_s3_bucket.athena_results.bucket
+}
+
+output "athena_results_bucket_arn" {
+  description = "ARN of the S3 bucket for Athena query results"
+  value       = aws_s3_bucket.athena_results.arn
+}

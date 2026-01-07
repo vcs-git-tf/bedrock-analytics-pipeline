@@ -37,13 +37,14 @@ module "firehose" {
 module "athena" {
   source = "./modules/athena"
 
-  project_name   = var.project_name
-  environment    = var.environment
-  database_name  = var.athena_database_name
-  s3_bucket_id   = module.storage.metrics_bucket_id
-  s3_bucket_arn  = module.storage.metrics_bucket_arn
-  metrics_prefix = var.metrics_prefix
-  tags           = local.tags
+  project_name               = var.project_name
+  environment                = var.environment
+  database_name              = var.athena_database_name
+  s3_bucket_id               = module.storage.metrics_bucket_id
+  s3_bucket_arn              = module.storage.metrics_bucket_arn
+  athena_results_bucket_name = module.storage.athena_results_bucket_name # Pass bucket name
+  metrics_prefix             = var.metrics_prefix
+  tags                       = local.tags
 
   depends_on = [module.storage]
 }
