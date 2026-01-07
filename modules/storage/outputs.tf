@@ -24,3 +24,9 @@ output "metrics_bucket_region" {
   description = "Region of the S3 bucket"
   value       = aws_s3_bucket.metrics_bucket.region
 }
+
+# modules/storage/outputs.tf - ADD THIS OUTPUT
+output "metrics_bucket_id" {
+  description = "ID of the metrics S3 bucket"
+  value       = aws_s3_bucket.metrics_bucket.id
+}
