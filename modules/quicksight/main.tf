@@ -2,9 +2,6 @@
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
-data "aws_quicksight_user" "current" {
-  user_name = "Admin"
-}
 
 # Local values for consistent naming and configuration
 locals {
@@ -51,72 +48,72 @@ locals {
 #   tags = local.common_tags
 # }
 
-# IAM policy for QuickSight to access Athena and S3
-resource "aws_iam_policy" "quicksight_service_policy" {
-  name        = "${local.name_prefix}-quicksight-service-policy"
-  description = "Policy for QuickSight to access Athena, S3, and Glue resources"
+# # IAM policy for QuickSight to access Athena and S3
+# resource "aws_iam_policy" "quicksight_service_policy" {
+#   name        = "${local.name_prefix}-quicksight-service-policy"
+#   description = "Policy for QuickSight to access Athena, S3, and Glue resources"
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AthenaAccess"
-        Effect = "Allow"
-        Action = [
-          "athena:BatchGetQueryExecution",
-          "athena:GetQueryExecution",
-          "athena:GetQueryResults",
-          "athena:GetWorkGroup",
-          "athena:ListQueryExecutions",
-          "athena:StartQueryExecution",
-          "athena:StopQueryExecution",
-          "athena:GetDataCatalog",
-          "athena:GetDatabase",
-          "athena:GetTableMetadata",
-          "athena:ListDatabases",
-          "athena:ListDataCatalogs",
-          "athena:ListTableMetadata",
-          "athena:ListWorkGroups"
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "S3Access"
-        Effect = "Allow"
-        Action = [
-          "s3:GetBucketLocation",
-          "s3:GetObject",
-          "s3:ListBucket",
-          "s3:ListBucketMultipartUploads",
-          "s3:ListMultipartUploadParts",
-          "s3:AbortMultipartUpload",
-          "s3:PutObject"
-        ]
-        Resource = [
-          var.athena_results_bucket_arn,
-          "${var.athena_results_bucket_arn}/*",
-          "arn:aws:s3:::aws-athena-query-results-*",
-          "arn:aws:s3:::aws-athena-query-results-*/*"
-        ]
-      },
-      {
-        Sid    = "GlueAccess"
-        Effect = "Allow"
-        Action = [
-          "glue:GetDatabase",
-          "glue:GetDatabases",
-          "glue:GetTable",
-          "glue:GetTables",
-          "glue:GetPartition",
-          "glue:GetPartitions"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
+#   policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Sid    = "AthenaAccess"
+#         Effect = "Allow"
+#         Action = [
+#           "athena:BatchGetQueryExecution",
+#           "athena:GetQueryExecution",
+#           "athena:GetQueryResults",
+#           "athena:GetWorkGroup",
+#           "athena:ListQueryExecutions",
+#           "athena:StartQueryExecution",
+#           "athena:StopQueryExecution",
+#           "athena:GetDataCatalog",
+#           "athena:GetDatabase",
+#           "athena:GetTableMetadata",
+#           "athena:ListDatabases",
+#           "athena:ListDataCatalogs",
+#           "athena:ListTableMetadata",
+#           "athena:ListWorkGroups"
+#         ]
+#         Resource = "*"
+#       },
+#       {
+#         Sid    = "S3Access"
+#         Effect = "Allow"
+#         Action = [
+#           "s3:GetBucketLocation",
+#           "s3:GetObject",
+#           "s3:ListBucket",
+#           "s3:ListBucketMultipartUploads",
+#           "s3:ListMultipartUploadParts",
+#           "s3:AbortMultipartUpload",
+#           "s3:PutObject"
+#         ]
+#         Resource = [
+#           var.athena_results_bucket_arn,
+#           "${var.athena_results_bucket_arn}/*",
+#           "arn:aws:s3:::aws-athena-query-results-*",
+#           "arn:aws:s3:::aws-athena-query-results-*/*"
+#         ]
+#       },
+#       {
+#         Sid    = "GlueAccess"
+#         Effect = "Allow"
+#         Action = [
+#           "glue:GetDatabase",
+#           "glue:GetDatabases",
+#           "glue:GetTable",
+#           "glue:GetTables",
+#           "glue:GetPartition",
+#           "glue:GetPartitions"
+#         ]
+#         Resource = "*"
+#       }
+#     ]
+#   })
 
-  tags = local.common_tags
-}
+#   tags = local.common_tags
+# }
 
 # # Attach policy to role
 # resource "aws_iam_role_policy_attachment" "quicksight_service_policy_attachment" {
@@ -261,21 +258,21 @@ resource "aws_quicksight_data_set" "bedrock_metrics_dataset" {
   #   }
   # }
 
-  permissions {
-    principal = "arn:aws:quicksight:${var.aws_region}:${var.aws_account_id}:user/default/${var.quicksight_user}"
-    actions = [
-      "quicksight:DescribeDataSet",
-      "quicksight:DescribeDataSetPermissions",
-      "quicksight:PassDataSet",
-      "quicksight:DescribeIngestion",
-      "quicksight:ListIngestions",
-      "quicksight:UpdateDataSet",
-      "quicksight:DeleteDataSet",
-      "quicksight:CreateIngestion",
-      "quicksight:CancelIngestion",
-      "quicksight:UpdateDataSetPermissions"
-    ]
-  }
+  # permissions {
+  #   principal = "arn:aws:quicksight:${var.aws_region}:${var.aws_account_id}:user/default/${var.quicksight_user}"
+  #   actions = [
+  #     "quicksight:DescribeDataSet",
+  #     "quicksight:DescribeDataSetPermissions",
+  #     "quicksight:PassDataSet",
+  #     "quicksight:DescribeIngestion",
+  #     "quicksight:ListIngestions",
+  #     "quicksight:UpdateDataSet",
+  #     "quicksight:DeleteDataSet",
+  #     "quicksight:CreateIngestion",
+  #     "quicksight:CancelIngestion",
+  #     "quicksight:UpdateDataSetPermissions"
+  #   ]
+  # }
 
   # Refresh properties for SPICE datasets
   dynamic "refresh_properties" {
@@ -377,27 +374,27 @@ resource "aws_quicksight_analysis" "bedrock_metrics_analysis" {
   }
 
   # Only QuickSight user permissions
-  dynamic "permissions" {
-    for_each = local.user_permissions_list
-    content {
-      principal = permissions.value
-      actions = [
-        "quicksight:RestoreAnalysis",
-        "quicksight:UpdateAnalysisPermissions",
-        "quicksight:DeleteAnalysis",
-        "quicksight:QueryAnalysis",
-        "quicksight:DescribeAnalysisPermissions",
-        "quicksight:DescribeAnalysis",
-        "quicksight:UpdateAnalysis"
-      ]
-    }
-  }
+  #   dynamic "permissions" {
+  #     for_each = local.user_permissions_list
+  #     content {
+  #       principal = permissions.value
+  #       actions = [
+  #         "quicksight:RestoreAnalysis",
+  #         "quicksight:UpdateAnalysisPermissions",
+  #         "quicksight:DeleteAnalysis",
+  #         "quicksight:QueryAnalysis",
+  #         "quicksight:DescribeAnalysisPermissions",
+  #         "quicksight:DescribeAnalysis",
+  #         "quicksight:UpdateAnalysis"
+  #       ]
+  #     }
+  #   }
 
-  depends_on = [
-    aws_quicksight_data_set.bedrock_metrics_dataset
-  ]
+  #   depends_on = [
+  #     aws_quicksight_data_set.bedrock_metrics_dataset
+  #   ]
 
-  tags = local.common_tags
+  #   tags = local.common_tags
 }
 
 # QuickSight Dashboard
@@ -445,24 +442,37 @@ resource "aws_quicksight_dashboard" "bedrock_metrics_dashboard" {
 }
 
 # Data source refresh schedule (for SPICE datasets)
-resource "aws_quicksight_refresh_schedule" "bedrock_metrics_refresh" {
-  count = var.dataset_import_mode == "SPICE" && var.enable_refresh_schedule ? 1 : 0
+# resource "aws_quicksight_refresh_schedule" "bedrock_metrics_refresh" {
+#   count = var.dataset_import_mode == "SPICE" && var.enable_refresh_schedule ? 1 : 0
 
-  data_set_id    = aws_quicksight_data_set.bedrock_metrics_dataset.data_set_id
-  aws_account_id = var.aws_account_id
-  schedule_id    = "${local.name_prefix}-refresh-schedule"
+#   data_set_id    = aws_quicksight_data_set.bedrock_metrics_dataset.data_set_id
+#   aws_account_id = var.aws_account_id
+#   schedule_id    = "${local.name_prefix}-refresh-schedule"
 
-  schedule {
-    refresh_type          = "INCREMENTAL_REFRESH"
-    start_after_date_time = var.refresh_start_time
-    # timezone              = var.refresh_timezone
-    schedule_frequency {
-      interval        = var.refresh_interval
-      time_of_the_day = var.refresh_time_of_day
+#   schedule {
+#     refresh_type          = "INCREMENTAL_REFRESH"
+#     start_after_date_time = var.refresh_start_time
+#     # timezone              = var.refresh_timezone
+#     schedule_frequency {
+#       interval        = var.refresh_interval
+#       time_of_the_day = var.refresh_time_of_day
+#     }
+#   }
+
+#   depends_on = [
+#     aws_quicksight_data_set.bedrock_metrics_dataset
+#   ]
+# }
+
+# Simplified data source without custom service role
+resource "aws_quicksight_data_source" "athena_source" {
+  data_source_id = "${var.project_name}-${var.environment}-athena-source"
+  name           = "${var.project_name} ${title(var.environment)} Athena Data Source"
+  type           = "ATHENA"
+
+  parameters {
+    athena {
+      work_group = var.athena_workgroup_name
     }
   }
-
-  depends_on = [
-    aws_quicksight_data_set.bedrock_metrics_dataset
-  ]
 }

@@ -60,18 +60,6 @@ variable "athena_table_name" {
   default     = "bedrock_metrics"
 }
 
-# Optional variables with defaults
-variable "quicksight_user" {
-  description = "QuickSight user name for permissions (required for resource permissions)"
-  type        = string
-  default     = "Admin"
-
-  # validation {
-  #   condition     = var.quicksight_user != ""
-  #   error_message = "QuickSight user must be specified for resource permissions."
-  # }
-}
-
 variable "dataset_import_mode" {
   description = "Import mode for QuickSight dataset (SPICE or DIRECT_QUERY)"
   type        = string
@@ -166,4 +154,10 @@ variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
   default     = {}
+}
+
+variable "quicksight_user" {
+  description = "QuickSight username"
+  type        = string
+  default     = "Admin"
 }
