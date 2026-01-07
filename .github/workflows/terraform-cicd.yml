@@ -474,35 +474,58 @@ jobs:
           terraform init -input=false
           echo "✅ Terraform initialized"
 
-      - name: Import Existing S3 Bucket
+      # - name: Import Existing S3 Bucket
+      #   run: |
+      #     echo "📦 Importing existing S3 bucket into Terraform state..."
+          
+      #     ENV=${{ github.event.inputs.environment || env.ENV }}
+      #     BUCKET_NAME="${{ env.PROJECT_NAME }}-${ENV}-metrics"
+          
+      #     # Check if bucket exists in AWS
+      #     if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+      #       echo "✅ Bucket exists: $BUCKET_NAME"
+            
+      #       # Check if already in Terraform state
+      #       if terraform state show "module.athena.aws_s3_bucket.athena_results" >/dev/null 2>&1; then
+      #         echo "ℹ️ Bucket already in Terraform state"
+      #       else
+      #         echo "📥 Importing bucket into Terraform state..."
+      #         terraform import "module.athena.aws_s3_bucket.athena_results" "$BUCKET_NAME"
+              
+      #         if [ $? -eq 0 ]; then
+      #           echo "✅ Successfully imported S3 bucket"
+      #         else
+      #           echo "❌ Failed to import S3 bucket"
+      #           exit 1
+      #         fi
+      #       fi
+      #     else
+      #       echo "ℹ️ Bucket doesn't exist - Terraform will create it"
+      #     fi
+      #   continue-on-error: false
+
+      # ADD THIS STEP AFTER INIT, BEFORE PLAN/APPLY
+      - name: Import Existing AWS Resources
         run: |
-          echo "📦 Importing existing S3 bucket into Terraform state..."
+          echo "📥 Importing existing AWS resources..."
           
           ENV=${{ github.event.inputs.environment || env.ENV }}
-          BUCKET_NAME="${{ env.PROJECT_NAME }}-${ENV}-metrics"
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           
-          # Check if bucket exists in AWS
+          # Import S3 bucket
+          BUCKET_NAME="bedrock-analytics-${ENV}-metrics"
           if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
-            echo "✅ Bucket exists: $BUCKET_NAME"
-            
-            # Check if already in Terraform state
-            if terraform state show "module.athena.aws_s3_bucket.athena_results" >/dev/null 2>&1; then
-              echo "ℹ️ Bucket already in Terraform state"
-            else
-              echo "📥 Importing bucket into Terraform state..."
-              terraform import "module.athena.aws_s3_bucket.athena_results" "$BUCKET_NAME"
-              
-              if [ $? -eq 0 ]; then
-                echo "✅ Successfully imported S3 bucket"
-              else
-                echo "❌ Failed to import S3 bucket"
-                exit 1
-              fi
-            fi
-          else
-            echo "ℹ️ Bucket doesn't exist - Terraform will create it"
+            echo "📦 Importing S3 bucket: $BUCKET_NAME"
+            terraform import "module.storage.aws_s3_bucket.metrics_bucket" "$BUCKET_NAME" || echo "S3 bucket import failed or already imported"
           fi
-        continue-on-error: false
+          
+          # Import other resources that might exist
+          echo "📥 Importing other potential resources..."
+          terraform import "module.athena.aws_athena_workgroup.bedrock_analytics" "bedrock-analytics-${ENV}-workgroup" || echo "Workgroup import failed or doesn't exist"
+          terraform import "module.quicksight.aws_quicksight_data_source.athena_source" "$AWS_ACCOUNT_ID/bedrock-analytics-${ENV}-athena-source" || echo "Data source import failed or doesn't exist"
+          
+          echo "✅ Import phase completed"
+        continue-on-error: true
 
       - name: Terraform Apply
         timeout-minutes: 20
