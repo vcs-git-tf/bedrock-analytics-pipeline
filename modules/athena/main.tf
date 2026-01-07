@@ -260,29 +260,29 @@ resource "aws_s3_bucket_policy" "athena_results_policy" {
 }
 
 # Athena workgroup with enhanced configuration
-resource "aws_athena_workgroup" "bedrock_analytics" {
-  name = "${var.project_name}-${var.environment}-workgroup"
+# resource "aws_athena_workgroup" "bedrock_analytics" {
+#   name = "${var.project_name}-${var.environment}-workgroup"
 
-  configuration {
-    enforce_workgroup_configuration    = true
-    publish_cloudwatch_metrics_enabled = true
+#   configuration {
+#     enforce_workgroup_configuration    = true
+#     publish_cloudwatch_metrics_enabled = true
 
-    result_configuration {
-      output_location = "s3://${aws_s3_bucket.athena_results.bucket}/query-results/"
+#     result_configuration {
+#       output_location = "s3://${aws_s3_bucket.athena_results.bucket}/query-results/"
 
-      encryption_configuration {
-        encryption_option = "SSE_S3"
-      }
-    }
-  }
+#       encryption_configuration {
+#         encryption_option = "SSE_S3"
+#       }
+#     }
+#   }
 
-  tags = var.tags
+#   tags = var.tags
 
-  depends_on = [
-    aws_s3_bucket.athena_results,
-    aws_s3_bucket_policy.athena_results
-  ]
-}
+#   depends_on = [
+#     aws_s3_bucket.athena_results,
+#     aws_s3_bucket_policy.athena_results
+#   ]
+# }
 
 # Athena database
 resource "aws_athena_database" "bedrock_analytics" {
