@@ -39,3 +39,8 @@ variable "athena_results_bucket_name" {
   description = "Name of the S3 bucket for Athena query results"
   type        = string
 }
+
+variable "athena_results_bucket_arn" {
+  description = "ARN of the S3 bucket for Athena query results"
+  type        = string
+}
