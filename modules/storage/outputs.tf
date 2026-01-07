@@ -1,20 +1,26 @@
-output "metrics_bucket_id" {
-  description = "ID of the S3 bucket for metrics data"
-  value       = aws_s3_bucket.metrics_bucket.id
-}
-
-output "metrics_bucket_arn" {
-  description = "ARN of the S3 bucket for metrics data"
-  value       = aws_s3_bucket.metrics_bucket.arn
-}
-
-# modules/storage/outputs.tf
+# modules/storage/outputs.tf (CORRECTED)
 output "athena_results_bucket_name" {
   description = "Name of the S3 bucket for Athena query results"
-  value       = aws_s3_bucket.athena_results.bucket
+  value       = aws_s3_bucket.metrics_bucket.bucket
 }
 
 output "athena_results_bucket_arn" {
   description = "ARN of the S3 bucket for Athena query results"
-  value       = aws_s3_bucket.athena_results.arn
+  value       = aws_s3_bucket.metrics_bucket.arn
+}
+
+output "athena_results_bucket_id" {
+  description = "ID of the S3 bucket for Athena query results"
+  value       = aws_s3_bucket.metrics_bucket.id
+}
+
+# Additional useful outputs
+output "metrics_bucket_domain_name" {
+  description = "Domain name of the S3 bucket"
+  value       = aws_s3_bucket.metrics_bucket.bucket_domain_name
+}
+
+output "metrics_bucket_region" {
+  description = "Region of the S3 bucket"
+  value       = aws_s3_bucket.metrics_bucket.region
 }
