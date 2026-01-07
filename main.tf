@@ -49,7 +49,11 @@ module "athena" {
   metrics_prefix             = var.metrics_prefix
   tags                       = local.tags
 
-  depends_on = [module.storage]
+  # CRITICAL: Add explicit dependency
+  depends_on = [
+    module.storage,
+    module.storage.aws_s3_bucket.metrics_bucket  # If this doesn't work, remove this line
+  ]
 }
 
 module "quicksight" {
