@@ -45,6 +45,7 @@ module "athena" {
   s3_bucket_id               = module.storage.metrics_bucket_id
   s3_bucket_arn              = module.storage.metrics_bucket_arn
   athena_results_bucket_name = module.storage.metrics_bucket_name
+  athena_results_bucket_arn  = module.storage.metrics_bucket_arn # ADD THIS LINE
   metrics_prefix             = var.metrics_prefix
   tags                       = local.tags
 
