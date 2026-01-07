@@ -128,31 +128,31 @@ data "aws_quicksight_user" "admin" {
   namespace      = "default"
 }
 
-resource "aws_quicksight_data_source" "athena_source" {
-  data_source_id = "${var.project_name}-${var.environment}-athena-source"
-  name           = "${var.project_name} ${title(var.environment)} Athena Data Source"
-  type           = "ATHENA"
+# resource "aws_quicksight_data_source" "athena_source" {
+#   data_source_id = "${var.project_name}-${var.environment}-athena-source"
+#   name           = "${var.project_name} ${title(var.environment)} Athena Data Source"
+#   type           = "ATHENA"
 
-  parameters {
-    athena {
-      work_group = var.athena_workgroup_name
-    }
-  }
+#   parameters {
+#     athena {
+#       work_group = var.athena_workgroup_name
+#     }
+#   }
 
-  # permission {
-  #   principal = data.aws_quicksight_user.admin.arn
-  #   actions = [
-  #     "quicksight:DescribeDataSource",
-  #     "quicksight:DescribeDataSourcePermissions",
-  #     "quicksight:PassDataSource",
-  #     "quicksight:UpdateDataSource",
-  #     "quicksight:DeleteDataSource",
-  #     "quicksight:UpdateDataSourcePermissions"
-  #   ]
-  # }
+#   # permission {
+#   #   principal = data.aws_quicksight_user.admin.arn
+#   #   actions = [
+#   #     "quicksight:DescribeDataSource",
+#   #     "quicksight:DescribeDataSourcePermissions",
+#   #     "quicksight:PassDataSource",
+#   #     "quicksight:UpdateDataSource",
+#   #     "quicksight:DeleteDataSource",
+#   #     "quicksight:UpdateDataSourcePermissions"
+#   #   ]
+#   # }
 
-  tags = var.tags
-}
+#   tags = var.tags
+# }
 
 # Add required variables
 # variable "quicksight_admin_user" {
