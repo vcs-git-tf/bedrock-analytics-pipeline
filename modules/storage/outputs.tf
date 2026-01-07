@@ -36,3 +36,8 @@ output "metrics_bucket_arn" {
   description = "ARN of the metrics S3 bucket"
   value       = aws_s3_bucket.metrics_bucket.arn
 }
+
+output "metrics_bucket_name" {
+  description = "Name of the metrics S3 bucket"
+  value       = aws_s3_bucket.metrics_bucket.bucket
+}
