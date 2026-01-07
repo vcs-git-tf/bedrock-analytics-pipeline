@@ -17,6 +17,8 @@ module "logging" {
   bedrock_logging_role_name = var.bedrock_logging_role_name
   s3_bucket_id              = module.storage.athena_results_bucket_id
   s3_bucket_arn             = module.storage.metrics_bucket_arn
+
+  depends_on = [module.storage]
 }
 
 module "firehose" {
