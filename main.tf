@@ -15,7 +15,7 @@ module "logging" {
   tags                      = var.tags
   log_retention             = var.log_retention
   bedrock_logging_role_name = var.bedrock_logging_role_name
-  s3_bucket_id              = module.storage.metrics_bucket_id
+  s3_bucket_id              = module.storage.athena_results_bucket_id
   s3_bucket_arn             = module.storage.metrics_bucket_arn
 }
 
